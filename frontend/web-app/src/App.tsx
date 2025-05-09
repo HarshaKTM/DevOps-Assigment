@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { ThemeProvider, CssBaseline } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
@@ -11,65 +10,134 @@ import MainLayout from './layouts/MainLayout';
 import AuthLayout from './layouts/AuthLayout';
 
 // Pages
-import Dashboard from './pages/Dashboard';
-import Appointments from './pages/Appointments';
-import AppointmentDetails from './pages/AppointmentDetails';
-import BookAppointment from './pages/BookAppointment';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Profile from './pages/Profile';
-import DoctorsList from './pages/DoctorsList';
-import DoctorProfile from './pages/DoctorProfile';
-import NotFound from './pages/NotFound';
+import DashboardPage from './pages/Dashboard/DashboardPage';
+import AppointmentsPage from './pages/Appointments/AppointmentsPage';
+import BookAppointmentPage from './pages/Appointments/BookAppointmentPage';
+import AppointmentDetailsPage from './pages/Appointments/AppointmentDetailsPage';
+import DoctorsPage from './pages/Doctors/DoctorsPage';
+import DoctorDetailsPage from './pages/Doctors/DoctorDetailsPage';
+import PatientsPage from './pages/Patients/PatientsPage';
+import PatientDetailsPage from './pages/Patients/PatientDetailsPage';
+import MedicalRecordsPage from './pages/MedicalRecords/MedicalRecordsPage';
+import MedicalRecordDetailsPage from './pages/MedicalRecords/MedicalRecordDetailsPage';
+import ProfilePage from './pages/Profile/ProfilePage';
+import LoginPage from './pages/Auth/LoginPage';
+import RegisterPage from './pages/Auth/RegisterPage';
+import ForgotPasswordPage from './pages/Auth/ForgotPasswordPage';
+import NotFoundPage from './pages/NotFoundPage';
 
-// State selectors
-import { selectIsAuthenticated } from './store/slices/authSlice';
+// Redux
+import { RootState, AppDispatch } from './store';
+import { getCurrentUser } from './store/slices/authSlice';
 
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-    background: {
-      default: '#f5f5f5',
-    },
-  },
-  typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-  },
-});
+// Theme
+import theme from './theme/theme';
 
 const App: React.FC = () => {
-  const isAuthenticated = useSelector(selectIsAuthenticated);
-
+  const dispatch = useDispatch<AppDispatch>();
+  const { isAuthenticated, user, loading } = useSelector((state: RootState) => state.auth);
+  
+  useEffect(() => {
+    dispatch(getCurrentUser());
+  }, [dispatch]);
+  
+  // Protected route wrapper
+  const ProtectedRoute: React.FC<{ 
+    element: React.ReactNode; 
+    allowedRoles?: string[] 
+  }> = ({ element, allowedRoles = [] }) => {
+    // Still loading auth state
+    if (loading) {
+      return null;
+    }
+    
+    // Not authenticated
+    if (!isAuthenticated) {
+      return <Navigate to="/login" />;
+    }
+    
+    // Role-based access control
+    if (allowedRoles.length > 0 && user && !allowedRoles.includes(user.role)) {
+      return <Navigate to="/dashboard" />;
+    }
+    
+    return <>{element}</>;
+  };
+  
   return (
     <ThemeProvider theme={theme}>
       <LocalizationProvider dateAdapter={AdapterDateFns}>
         <CssBaseline />
         <BrowserRouter>
           <Routes>
-            {/* Auth Routes */}
+            {/* Auth routes */}
             <Route element={<AuthLayout />}>
-              <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
-              <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
+              <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/dashboard" />} />
+              <Route path="/register" element={!isAuthenticated ? <RegisterPage /> : <Navigate to="/dashboard" />} />
+              <Route path="/forgot-password" element={!isAuthenticated ? <ForgotPasswordPage /> : <Navigate to="/dashboard" />} />
             </Route>
-
-            {/* Protected Routes */}
+            
+            {/* App routes */}
             <Route element={<MainLayout />}>
-              <Route path="/" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
-              <Route path="/appointments" element={isAuthenticated ? <Appointments /> : <Navigate to="/login" />} />
-              <Route path="/appointments/:id" element={isAuthenticated ? <AppointmentDetails /> : <Navigate to="/login" />} />
-              <Route path="/book-appointment" element={isAuthenticated ? <BookAppointment /> : <Navigate to="/login" />} />
-              <Route path="/doctors" element={isAuthenticated ? <DoctorsList /> : <Navigate to="/login" />} />
-              <Route path="/doctors/:id" element={isAuthenticated ? <DoctorProfile /> : <Navigate to="/login" />} />
-              <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
+              <Route path="/" element={<Navigate to="/dashboard" />} />
+              
+              <Route 
+                path="/dashboard" 
+                element={<ProtectedRoute element={<DashboardPage />} />} 
+              />
+              
+              <Route 
+                path="/appointments" 
+                element={<ProtectedRoute element={<AppointmentsPage />} />} 
+              />
+              
+              <Route 
+                path="/appointments/new" 
+                element={<ProtectedRoute element={<BookAppointmentPage />} allowedRoles={['patient']} />} 
+              />
+              
+              <Route 
+                path="/appointments/:id" 
+                element={<ProtectedRoute element={<AppointmentDetailsPage />} />} 
+              />
+              
+              <Route 
+                path="/doctors" 
+                element={<ProtectedRoute element={<DoctorsPage />} />} 
+              />
+              
+              <Route 
+                path="/doctors/:id" 
+                element={<ProtectedRoute element={<DoctorDetailsPage />} />} 
+              />
+              
+              <Route 
+                path="/patients" 
+                element={<ProtectedRoute element={<PatientsPage />} allowedRoles={['admin', 'doctor', 'staff']} />} 
+              />
+              
+              <Route 
+                path="/patients/:id" 
+                element={<ProtectedRoute element={<PatientDetailsPage />} allowedRoles={['admin', 'doctor', 'staff']} />} 
+              />
+              
+              <Route 
+                path="/medical-records" 
+                element={<ProtectedRoute element={<MedicalRecordsPage />} />} 
+              />
+              
+              <Route 
+                path="/medical-records/:id" 
+                element={<ProtectedRoute element={<MedicalRecordDetailsPage />} />} 
+              />
+              
+              <Route 
+                path="/profile" 
+                element={<ProtectedRoute element={<ProfilePage />} />} 
+              />
+              
+              <Route path="*" element={<NotFoundPage />} />
             </Route>
-
-            {/* 404 Page */}
-            <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </LocalizationProvider>
