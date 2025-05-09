@@ -1,4 +1,5 @@
 import api from './api';
+import { AxiosResponse } from 'axios';
 
 // Mock data for development
 const isDevEnvironment = true;
@@ -79,47 +80,61 @@ const mockDoctors = [
   },
 ];
 
-class DoctorApiService {
-  async getAllDoctors() {
+export interface Doctor {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  specialization: string;
+  yearsOfExperience: number;
+  about: string;
+  education: string;
+  avatar: string;
+  schedule?: {
+    [day: string]: {
+      start: string;
+      end: string;
+      isAvailable: boolean;
+    };
+  };
+  rating?: number;
+  reviewCount?: number;
+}
+
+export interface DoctorSchedule {
+  doctorId: number;
+  schedule: {
+    [day: string]: {
+      start: string;
+      end: string;
+      isAvailable: boolean;
+    };
+  };
+}
+
+class DoctorService {
+  /**
+   * Get all doctors
+   */
+  async getAllDoctors(): Promise<Doctor[]> {
     if (isDevEnvironment) {
       await new Promise(resolve => setTimeout(resolve, 500));
       return mockDoctors;
     }
     
-    const response = await api.get('/api/doctors');
-    return response.data.data;
-  }
-
-  async getDoctorById(id: number) {
-    if (isDevEnvironment) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const doctor = mockDoctors.find(doctor => doctor.id === id);
-      if (!doctor) {
-        throw new Error('Doctor not found');
-      }
-      
-      return doctor;
+    try {
+      const response: AxiosResponse<Doctor[]> = await api.get('/api/doctors');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching all doctors:', error);
+      throw error;
     }
-    
-    const response = await api.get(`/api/doctors/${id}`);
-    return response.data.data;
   }
 
-  async getDoctorsBySpecialization(specialization: string) {
-    if (isDevEnvironment) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      return mockDoctors.filter(
-        doctor => doctor.specialization.toLowerCase() === specialization.toLowerCase()
-      );
-    }
-    
-    const response = await api.get(`/api/doctors/specialization/${specialization}`);
-    return response.data.data;
-  }
-
-  async getDoctorAvailability(doctorId: number, date: string) {
+  /**
+   * Get a specific doctor by ID
+   */
+  async getDoctorById(doctorId: number): Promise<Doctor> {
     if (isDevEnvironment) {
       await new Promise(resolve => setTimeout(resolve, 500));
       
@@ -128,43 +143,95 @@ class DoctorApiService {
         throw new Error('Doctor not found');
       }
       
-      // Convert date to day of week
-      const dayOfWeek = new Date(date).toLocaleDateString('en-US', { weekday: 'lowercase' });
-      const availability = doctor.availability[dayOfWeek as keyof typeof doctor.availability];
-      
-      if (!availability) {
-        return []; // No availability on this day
-      }
-      
-      // Generate time slots based on availability
-      const startTime = parseInt(availability.start.split(':')[0]);
-      const endTime = parseInt(availability.end.split(':')[0]);
-      
-      const slots = [];
-      for (let hour = startTime; hour < endTime; hour++) {
-        for (let minute = 0; minute < 60; minute += 30) {
-          const startDateTime = new Date(date);
-          startDateTime.setHours(hour, minute, 0, 0);
-          
-          const endDateTime = new Date(date);
-          endDateTime.setHours(hour, minute + 30, 0, 0);
-          
-          slots.push({
-            startTime: startDateTime.toISOString(),
-            endTime: endDateTime.toISOString(),
-            isAvailable: Math.random() > 0.3, // 70% chance of being available
-          });
-        }
-      }
-      
-      return slots;
+      return doctor;
     }
     
-    const response = await api.get(`/api/doctors/${doctorId}/availability`, {
-      params: { date }
-    });
-    return response.data.data;
+    try {
+      const response: AxiosResponse<Doctor> = await api.get(`/api/doctors/${doctorId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching doctor ${doctorId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get doctors by specialization
+   */
+  async getDoctorsBySpecialization(specialization: string): Promise<Doctor[]> {
+    if (isDevEnvironment) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      return mockDoctors.filter(
+        doctor => doctor.specialization.toLowerCase() === specialization.toLowerCase()
+      );
+    }
+    
+    try {
+      const response: AxiosResponse<Doctor[]> = await api.get(`/api/doctors/specialization/${specialization}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching doctors with specialization ${specialization}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search doctors by name or specialization
+   */
+  async searchDoctors(query: string): Promise<Doctor[]> {
+    try {
+      const response: AxiosResponse<Doctor[]> = await api.get('/api/doctors/search', {
+        params: { query }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error searching doctors:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get doctor's schedule
+   */
+  async getDoctorSchedule(doctorId: number): Promise<DoctorSchedule> {
+    try {
+      const response: AxiosResponse<DoctorSchedule> = await api.get(`/api/doctors/${doctorId}/schedule`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching schedule for doctor ${doctorId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get doctor reviews
+   */
+  async getDoctorReviews(doctorId: number): Promise<any[]> {
+    try {
+      const response: AxiosResponse<any[]> = await api.get(`/api/doctors/${doctorId}/reviews`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching reviews for doctor ${doctorId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get top-rated doctors
+   */
+  async getTopRatedDoctors(limit: number = 5): Promise<Doctor[]> {
+    try {
+      const response: AxiosResponse<Doctor[]> = await api.get('/api/doctors/top-rated', {
+        params: { limit }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching top-rated doctors:', error);
+      throw error;
+    }
   }
 }
 
-export const doctorApi = new DoctorApiService(); 
+export const doctorService = new DoctorService();
+export default doctorService; 

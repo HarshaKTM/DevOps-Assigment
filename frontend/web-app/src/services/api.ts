@@ -1,51 +1,45 @@
-import axios from 'axios';
+import axios, { AxiosInstance, AxiosResponse, AxiosError, AxiosRequestConfig } from 'axios';
 
-// Create axios instance with default config
-const api = axios.create({
+// Create axios instance with base URL from environment variable
+const instance: AxiosInstance = axios.create({
   baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:4000',
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
-  },
-  timeout: 10000, // 10 seconds
+  }
 });
 
-// Add request interceptor to add auth token
-api.interceptors.request.use(
-  (config) => {
-    // Get token from localStorage
+// Request interceptor for adding authorization token
+instance.interceptors.request.use(
+  (config: AxiosRequestConfig) => {
     const token = localStorage.getItem('token');
-    
-    // If token exists, add it to request headers
-    if (token) {
+    if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
     return config;
   },
-  (error) => {
+  (error: AxiosError) => {
     return Promise.reject(error);
   }
 );
 
-// Add response interceptor to handle errors
-api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    // Handle unauthorized errors (token expired)
+// Response interceptor for handling errors
+instance.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  (error: AxiosError) => {
+    // Handle expired token
     if (error.response?.status === 401) {
-      // Clear token from localStorage
       localStorage.removeItem('token');
-      
-      // Redirect to login page if not already there
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
-      }
+      window.location.href = '/login';
+    }
+    
+    // Handle server errors
+    if (error.response?.status === 500) {
+      console.error('Server error:', error);
     }
     
     return Promise.reject(error);
   }
 );
 
-export default api; 
+export default instance; 
