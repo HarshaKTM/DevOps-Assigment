@@ -5,6 +5,12 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { RootState } from '../store';
+import { 
+  HomeIcon, 
+  CalendarIcon, 
+  UserIcon, 
+  BellIcon 
+} from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // Auth Screens
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -22,7 +28,11 @@ import MedicalRecordsScreen from '../screens/medical-records/MedicalRecordsScree
 import MedicalRecordDetailsScreen from '../screens/medical-records/MedicalRecordDetailsScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
-import NotificationsScreen from '../screens/NotificationsScreen';
+import NotificationsScreen from '../screens/notifications/NotificationsScreen';
+import SelectDoctorScreen from '../screens/appointments/SelectDoctorScreen';
+import SelectTimeScreen from '../screens/appointments/SelectTimeScreen';
+import AppointmentConfirmationScreen from '../screens/appointments/AppointmentConfirmationScreen';
+import NotificationPreferencesScreen from '../screens/profile/NotificationPreferencesScreen';
 
 // Stack navigators
 const AuthStack = createStackNavigator();
@@ -76,6 +86,21 @@ const AppointmentStackNavigator = () => (
       name="BookAppointment" 
       component={BookAppointmentScreen} 
       options={{ title: 'Book Appointment' }}
+    />
+    <AppointmentStack.Screen 
+      name="SelectDoctor" 
+      component={SelectDoctorScreen} 
+      options={{ title: 'Select Doctor' }}
+    />
+    <AppointmentStack.Screen 
+      name="SelectTime" 
+      component={SelectTimeScreen} 
+      options={{ title: 'Select Time' }}
+    />
+    <AppointmentStack.Screen 
+      name="AppointmentConfirmation" 
+      component={AppointmentConfirmationScreen} 
+      options={{ title: 'Appointment Confirmation' }}
     />
     <AppointmentStack.Screen 
       name="DoctorDetails" 
@@ -135,30 +160,42 @@ const ProfileStackNavigator = () => (
       component={EditProfileScreen} 
       options={{ title: 'Edit Profile' }}
     />
+    <ProfileStack.Screen 
+      name="NotificationPreferences" 
+      component={NotificationPreferencesScreen} 
+      options={{ title: 'Notification Preferences' }}
+    />
   </ProfileStack.Navigator>
+);
+
+// Notifications stack
+const NotificationsStackNavigator = () => (
+  <Stack.Navigator>
+    <Stack.Screen name="My Notifications" component={NotificationsScreen} />
+  </Stack.Navigator>
 );
 
 // Main tab navigator
 const TabNavigator = () => (
   <Tab.Navigator
     screenOptions={({ route }) => ({
-      tabBarIcon: ({ focused, color, size }) => {
-        let iconName;
-
-        if (route.name === 'HomeTab') {
-          iconName = focused ? 'home' : 'home-outline';
-        } else if (route.name === 'AppointmentsTab') {
-          iconName = focused ? 'calendar' : 'calendar-outline';
-        } else if (route.name === 'DoctorsTab') {
-          iconName = focused ? 'medical' : 'medical-outline';
-        } else if (route.name === 'RecordsTab') {
-          iconName = focused ? 'document-text' : 'document-text-outline';
-        } else if (route.name === 'ProfileTab') {
-          iconName = focused ? 'person' : 'person-outline';
+      tabBarIcon: ({ color, size }) => {
+        switch (route.name) {
+          case 'HomeTab':
+            return <HomeIcon name="home" color={color} size={size} />;
+          case 'AppointmentsTab':
+            return <CalendarIcon name="calendar" color={color} size={size} />;
+          case 'DoctorsTab':
+            return <UserIcon name="account" color={color} size={size} />;
+          case 'RecordsTab':
+            return <HomeIcon name="home" color={color} size={size} />;
+          case 'ProfileTab':
+            return <UserIcon name="account" color={color} size={size} />;
+          case 'Notifications':
+            return <BellIcon name="bell" color={color} size={size} />;
+          default:
+            return null;
         }
-
-        // You can return any component here
-        return <Ionicons name={iconName as any} size={size} color={color} />;
       },
     })}
     tabBarOptions={{
@@ -190,6 +227,11 @@ const TabNavigator = () => (
       name="ProfileTab" 
       component={ProfileStackNavigator} 
       options={{ tabBarLabel: 'Profile' }}
+    />
+    <Tab.Screen 
+      name="Notifications" 
+      component={NotificationsStackNavigator} 
+      options={{ tabBarLabel: 'Notifications' }}
     />
   </Tab.Navigator>
 );

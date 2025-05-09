@@ -1,138 +1,64 @@
-# Healthcare System Mobile App
+# Healthcare Patient Mobile App
 
-A React Native mobile application for patients to manage their healthcare appointments, view medical records, and receive notifications. This app provides a seamless healthcare experience for patients on iOS and Android platforms.
+Patient-facing mobile application for booking and managing healthcare appointments.
 
 ## Features
 
-- **Patient Authentication**
-  - Secure login with email or social authentication
-  - Biometric authentication support (Face ID, Touch ID, fingerprint)
-  - Multi-factor authentication for added security
-  - Password reset and account recovery options
+### Appointment Booking & Management
+- Book new appointments with preferred doctors
+- View calendar of available time slots
+- Cancel or reschedule existing appointments
+- Get directions to appointment location
 
-- **Appointment Management**
-  - View upcoming appointments
-  - Book new appointments with preferred doctors
-  - Reschedule or cancel appointments
-  - Get real-time notifications for appointment reminders
-  - Check in for appointments digitally
+### Appointment Viewing
+- See all upcoming appointments with details
+- View appointment history
+- Get reminders for upcoming appointments
+- Filter appointments by doctor, specialty, or date
 
-- **Doctor Search and Selection**
-  - Browse doctors by specialty, location, or availability
-  - View doctor profiles with specializations and qualifications
-  - See real-time availability calendar
-  - Read patient reviews and ratings
-  - Add favorite doctors for quick access
+### Profile Management
+- Update personal information
+- Manage contact preferences
+- Upload/update insurance information
+- Set communication preferences
 
-- **Medical Records**
-  - View medical history and past appointment summaries
-  - Access lab results and diagnostic reports
-  - View prescribed medications and treatment plans
-  - Download and share medical records securely
-  - Track health metrics over time
-
-- **Payments and Insurance**
-  - View and pay outstanding bills
-  - Save payment methods securely
-  - Manage insurance information
-  - View coverage details and eligibility
-  - Access payment history and receipts
-
-- **Notifications**
-  - Appointment reminders
-  - Doctor schedule changes
-  - Medical report availability alerts
-  - Medication reminders
-  - Health tips and recommendations
-
-- **Telemedicine Integration**
-  - Join video consultations directly in the app
-  - Pre-appointment questionnaires
-  - Post-appointment feedback
-  - Secure messaging with healthcare providers
+### Notifications
+- Receive push notifications for appointment reminders
+- Get alerts for scheduling changes
+- Receive confirmation messages for bookings/cancellations
+- Option to enable/disable different notification types
 
 ## Technology Stack
-
-- **Frontend Framework**: React Native
-- **State Management**: Redux with Redux Toolkit
-- **UI Components**: React Native Paper
-- **Navigation**: React Navigation
-- **API Communication**: Axios
-- **Authentication**: Firebase Authentication
-- **Push Notifications**: Firebase Cloud Messaging
-- **Analytics**: Firebase Analytics
-- **Testing**: Jest and React Native Testing Library
-- **Build & Deployment**: Fastlane
+- React Native for cross-platform mobile development
+- Redux for state management
+- Axios for API communication
+- React Navigation for screen navigation
+- Async Storage for local data persistence
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js 16+ installed
-- React Native development environment set up
-- iOS: XCode and CocoaPods (Mac only)
-- Android: Android Studio and Android SDK
+### Requirements
+- Node.js 16+
+- React Native CLI or Expo
+- iOS/Android development environment
 
 ### Installation
-
-1. Clone the repository
-2. Install dependencies:
-
-```bash
-cd frontend/mobile-app
+```
 npm install
 ```
 
-3. Install iOS pods (Mac only):
-
-```bash
-cd ios && pod install && cd ..
+### Running the App
 ```
-
-4. Create a `.env` file with the required environment variables:
-
-```
-API_BASE_URL=https://api.healthcare-system.example.com
-FIREBASE_API_KEY=your-firebase-api-key
-FIREBASE_AUTH_DOMAIN=your-firebase-auth-domain
-FIREBASE_PROJECT_ID=your-firebase-project-id
-FIREBASE_STORAGE_BUCKET=your-firebase-storage-bucket
-FIREBASE_MESSAGING_SENDER_ID=your-firebase-messaging-sender-id
-FIREBASE_APP_ID=your-firebase-app-id
-```
-
-5. Start the development server:
-
-```bash
-npm start
-```
-
-6. Run on iOS simulator (Mac only):
-
-```bash
+# For iOS
 npm run ios
-```
 
-7. Run on Android emulator or device:
-
-```bash
+# For Android
 npm run android
 ```
 
-### Building for Production
-
-#### iOS
-
-```bash
-cd ios
-fastlane beta
+### Testing
 ```
-
-#### Android
-
-```bash
-cd android
-fastlane beta
+npm test
 ```
 
 ## Project Structure

@@ -1,4 +1,6 @@
 import api from './api';
+import { AxiosResponse } from 'axios';
+import { MedicalRecord } from '../store/slices/medicalRecordsSlice';
 
 // Development mode with mock data
 const isDevEnvironment = true;
@@ -66,132 +68,122 @@ const mockMedicalRecords = [
   }
 ];
 
-class MedicalRecordsApiService {
-  async getPatientRecords(patientId: number) {
-    if (isDevEnvironment) {
-      await new Promise(resolve => setTimeout(resolve, 600));
-      
-      return mockMedicalRecords.filter(record => record.patientId === patientId);
+class MedicalRecordsService {
+  /**
+   * Get all medical records for a patient
+   */
+  async getPatientRecords(patientId: number): Promise<MedicalRecord[]> {
+    try {
+      const response: AxiosResponse<MedicalRecord[]> = await api.get(`/api/medical-records/patient/${patientId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching patient medical records:', error);
+      throw error;
     }
-    
-    const response = await api.get(`/api/medical-records/patient/${patientId}`);
-    return response.data.data;
   }
 
-  async getRecordById(recordId: number) {
-    if (isDevEnvironment) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const record = mockMedicalRecords.find(record => record.id === recordId);
-      if (!record) {
-        throw new Error('Medical record not found');
-      }
-      
-      return record;
+  /**
+   * Get a specific medical record by ID
+   */
+  async getRecordById(recordId: number): Promise<MedicalRecord> {
+    try {
+      const response: AxiosResponse<MedicalRecord> = await api.get(`/api/medical-records/${recordId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching medical record ${recordId}:`, error);
+      throw error;
     }
-    
-    const response = await api.get(`/api/medical-records/${recordId}`);
-    return response.data.data;
   }
 
-  async createRecord(recordData: any) {
-    if (isDevEnvironment) {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const newRecord = {
-        id: Math.max(...mockMedicalRecords.map(record => record.id)) + 1,
-        patientId: recordData.patientId,
-        title: recordData.title,
-        recordType: recordData.recordType,
-        date: recordData.date || new Date().toISOString(),
-        doctorId: recordData.doctorId,
-        doctorName: recordData.doctorName,
-        content: recordData.content,
-        attachments: recordData.attachments || [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      
-      mockMedicalRecords.push(newRecord);
-      return newRecord;
+  /**
+   * Get medical records by type
+   */
+  async getRecordsByType(patientId: number, recordType: string): Promise<MedicalRecord[]> {
+    try {
+      const response: AxiosResponse<MedicalRecord[]> = await api.get(
+        `/api/medical-records/patient/${patientId}/type/${recordType}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching medical records by type ${recordType}:`, error);
+      throw error;
     }
-    
-    const response = await api.post('/api/medical-records', recordData);
-    return response.data.data;
   }
 
-  async updateRecord(recordId: number, recordData: any) {
-    if (isDevEnvironment) {
-      await new Promise(resolve => setTimeout(resolve, 700));
-      
-      const recordIndex = mockMedicalRecords.findIndex(record => record.id === recordId);
-      if (recordIndex === -1) {
-        throw new Error('Medical record not found');
-      }
-      
-      const updatedRecord = {
-        ...mockMedicalRecords[recordIndex],
-        ...recordData,
-        updatedAt: new Date().toISOString()
-      };
-      
-      mockMedicalRecords[recordIndex] = updatedRecord;
-      return updatedRecord;
+  /**
+   * Upload a new medical record
+   */
+  async uploadRecord(recordData: FormData): Promise<MedicalRecord> {
+    try {
+      const response: AxiosResponse<MedicalRecord> = await api.post('/api/medical-records', recordData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error uploading medical record:', error);
+      throw error;
     }
-    
-    const response = await api.put(`/api/medical-records/${recordId}`, recordData);
-    return response.data.data;
   }
 
-  async deleteRecord(recordId: number) {
-    if (isDevEnvironment) {
-      await new Promise(resolve => setTimeout(resolve, 600));
-      
-      const recordIndex = mockMedicalRecords.findIndex(record => record.id === recordId);
-      if (recordIndex === -1) {
-        throw new Error('Medical record not found');
-      }
-      
-      mockMedicalRecords.splice(recordIndex, 1);
-      return { success: true };
+  /**
+   * Update a medical record
+   */
+  async updateRecord(recordId: number, recordData: Partial<MedicalRecord>): Promise<MedicalRecord> {
+    try {
+      const response: AxiosResponse<MedicalRecord> = await api.put(`/api/medical-records/${recordId}`, recordData);
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating medical record ${recordId}:`, error);
+      throw error;
     }
-    
-    const response = await api.delete(`/api/medical-records/${recordId}`);
-    return response.data;
   }
 
-  async uploadAttachment(recordId: number, file: File) {
-    if (isDevEnvironment) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const recordIndex = mockMedicalRecords.findIndex(record => record.id === recordId);
-      if (recordIndex === -1) {
-        throw new Error('Medical record not found');
-      }
-      
-      const newAttachment = {
-        id: Math.max(...mockMedicalRecords[recordIndex].attachments.map(att => att.id), 0) + 1,
-        name: file.name,
-        url: '#',
-        type: file.type,
-        size: file.size
-      };
-      
-      mockMedicalRecords[recordIndex].attachments.push(newAttachment);
-      return newAttachment;
+  /**
+   * Delete a medical record
+   */
+  async deleteRecord(recordId: number): Promise<{ success: boolean }> {
+    try {
+      const response: AxiosResponse<{ success: boolean }> = await api.delete(`/api/medical-records/${recordId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error deleting medical record ${recordId}:`, error);
+      throw error;
     }
-    
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    const response = await api.post(`/api/medical-records/${recordId}/attachments`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
-    
-    return response.data.data;
+  }
+
+  /**
+   * Share a medical record
+   */
+  async shareRecord(recordId: number, recipientId: number, permissions: string): Promise<{ success: boolean }> {
+    try {
+      const response: AxiosResponse<{ success: boolean }> = await api.post(`/api/medical-records/${recordId}/share`, {
+        recipientId,
+        permissions,
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Error sharing medical record ${recordId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Download a medical record file
+   */
+  async downloadFile(fileUrl: string): Promise<Blob> {
+    try {
+      const response: AxiosResponse<Blob> = await api.get(fileUrl, {
+        responseType: 'blob',
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Error downloading file ${fileUrl}:`, error);
+      throw error;
+    }
   }
 }
 
-export const medicalRecordsApi = new MedicalRecordsApiService(); 
+export const medicalRecordsService = new MedicalRecordsService();
+export default medicalRecordsService; 

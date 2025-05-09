@@ -121,7 +121,55 @@ class AuthApiService {
     }
     
     const response = await api.get('/api/auth/me');
-    return response.data.data;
+    return response.data;
+  }
+
+  async forgotPassword(email: string) {
+    if (isDevEnvironment) {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      if (email === 'patient@example.com' || email === 'doctor@example.com' || email === 'admin@example.com') {
+        return { success: true, message: 'Password reset link sent to your email' };
+      } else {
+        throw {
+          response: {
+            data: {
+              error: { 
+                message: 'Email not found' 
+              }
+            }
+          }
+        };
+      }
+    }
+    
+    const response = await api.post('/api/auth/forgot-password', { email });
+    return response.data;
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    if (isDevEnvironment) {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 700));
+      
+      if (token && newPassword) {
+        return { success: true, message: 'Password has been reset successfully' };
+      } else {
+        throw {
+          response: {
+            data: {
+              error: { 
+                message: 'Invalid token or password' 
+              }
+            }
+          }
+        };
+      }
+    }
+    
+    const response = await api.post('/api/auth/reset-password', { token, newPassword });
+    return response.data;
   }
 
   async updateProfile(userData: {
@@ -134,39 +182,24 @@ class AuthApiService {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 600));
       
-      // Update mock user
-      Object.assign(mockUser, userData);
-      
-      return mockUser;
+      return {
+        ...mockUser,
+        ...userData
+      };
     }
     
     const response = await api.put('/api/auth/profile', userData);
-    return response.data.data;
+    return response.data;
   }
 
-  async changePassword(data: {
-    currentPassword: string;
-    newPassword: string;
-    confirmPassword: string;
-  }) {
+  async changePassword(currentPassword: string, newPassword: string) {
     if (isDevEnvironment) {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Basic validation for development
-      if (data.newPassword !== data.confirmPassword) {
-        throw {
-          response: {
-            data: {
-              error: { 
-                message: 'New password and confirmation do not match' 
-              }
-            }
-          }
-        };
-      }
-      
-      if (data.currentPassword !== 'password') {
+      if (currentPassword === 'password') {
+        return { success: true, message: 'Password changed successfully' };
+      } else {
         throw {
           response: {
             data: {
@@ -177,23 +210,9 @@ class AuthApiService {
           }
         };
       }
-      
-      return { success: true };
     }
     
-    const response = await api.put('/api/auth/password', data);
-    return response.data;
-  }
-
-  async forgotPassword(email: string) {
-    if (isDevEnvironment) {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      return { success: true, message: 'Password reset instructions sent to your email' };
-    }
-    
-    const response = await api.post('/api/auth/forgot-password', { email });
+    const response = await api.post('/api/auth/change-password', { currentPassword, newPassword });
     return response.data;
   }
 }

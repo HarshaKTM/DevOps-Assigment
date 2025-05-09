@@ -1,95 +1,57 @@
 # Healthcare System Web Dashboard
 
-This is the administrative web dashboard for the Healthcare Appointment System. It provides healthcare staff and doctors with tools to manage appointments, view patient information, and access analytics.
+Administrative interface for healthcare staff and doctors to manage appointments and view analytics.
 
 ## Features
 
-- **Authentication and Authorization**
-  - Role-based access control (Admin, Doctor, Staff)
-  - Secure login with MFA option
-  - Password reset and account management
+### Schedule Management
+- View doctor's daily, weekly, and monthly schedules
+- Block/unblock time slots for appointments
+- Set recurring availability patterns
+- Manage personal time off
 
-- **Appointment Management**
-  - View and manage all upcoming appointments
-  - Schedule, reschedule, and cancel appointments
-  - Batch operations for multiple appointments
-  - Conflict detection and resolution
+### Patient Appointment Overview
+- View all upcoming and past appointments
+- Filter appointments by status, date range, or doctor
+- View patient details and medical history
+- Add notes to appointments
+- Check in patients for appointments
+- Mark appointments as completed
 
-- **Patient Management**
-  - Search and view patient profiles
-  - View patient medical history
-  - Add notes and update patient information
-  - Track patient appointment history
-
-- **Doctor Schedule Management**
-  - Set availability and working hours
-  - Block time slots for meetings or breaks
-  - View daily, weekly and monthly schedule
-  - Set recurring availability patterns
-
-- **Analytics Dashboard**
-  - Appointment statistics (daily, weekly, monthly)
-  - Cancellation rates and reasons
-  - Provider utilization metrics
-  - Patient demographics and trends
-
-- **System Administration**
-  - User management for staff accounts
-  - Department and service configuration
-  - System settings and preferences
-  - Audit logs and activity monitoring
+### Analytics Dashboard
+- View appointments per day/week/month
+- Monitor cancellation rates and no-show statistics
+- Track doctor utilization and popular time slots
+- Generate reports on appointment trends
 
 ## Technology Stack
+- React with TypeScript
+- Material UI for interface components
+- Redux for state management
+- Chart.js for analytics visualizations
+- JWT authentication for secure access
 
-- **Frontend Framework**: React.js with TypeScript
-- **State Management**: Redux with Redux Toolkit
-- **UI Components**: Material-UI (MUI)
-- **Form Handling**: Formik with Yup validation
-- **Charts and Visualizations**: Recharts
-- **API Communication**: Axios with React Query
-- **Testing**: Jest and React Testing Library
-- **Build Tool**: Vite
+## Role-Based Access
+- **Doctors**: View own schedule and appointments, manage availability
+- **Nurses**: Check in patients, view doctor schedules, manage appointments
+- **Administrators**: Full access to all dashboard features and reports
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js 16+ installed
-- Access to the Healthcare System API endpoints
-
 ### Installation
-
-1. Clone the repository
-2. Install dependencies:
-
-```bash
-cd frontend/web-dashboard
+```
 npm install
 ```
 
-3. Create a `.env.local` file with the required environment variables:
-
+### Running the Dashboard
 ```
-VITE_API_BASE_URL=https://api.healthcare-system.example.com
-VITE_AUTH_DOMAIN=your-auth-domain.com
-VITE_AUTH_CLIENT_ID=your-client-id
+npm start
 ```
 
-4. Start the development server:
-
-```bash
-npm run dev
+### Testing
 ```
-
-5. Open [http://localhost:5173](http://localhost:5173) in your browser
-
-### Building for Production
-
-```bash
-npm run build
+npm test
 ```
-
-The optimized production build will be available in the `dist` directory.
 
 ## Project Structure
 

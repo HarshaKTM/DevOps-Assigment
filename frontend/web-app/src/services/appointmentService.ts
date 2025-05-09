@@ -1,6 +1,11 @@
 import api from './api';
 import { AxiosResponse } from 'axios';
 
+export interface TimeSlot {
+  time: string;
+  isAvailable: boolean;
+}
+
 export interface Appointment {
   id: number;
   patientId: number;
@@ -16,16 +21,11 @@ export interface Appointment {
   updatedAt: string;
 }
 
-export interface TimeSlot {
-  time: string;
-  isAvailable: boolean;
-}
-
 class AppointmentService {
   /**
    * Get all appointments for a patient
    */
-  async getPatientAppointments(patientId: number): Promise<Appointment[]> {
+  async getAppointments(patientId: number): Promise<Appointment[]> {
     try {
       const response: AxiosResponse<Appointment[]> = await api.get(`/api/appointments/patient/${patientId}`);
       return response.data;
@@ -75,20 +75,35 @@ class AppointmentService {
   }
 
   /**
-   * Create a new appointment
+   * Get available time slots for a doctor on a specific date
    */
-  async createAppointment(appointmentData: Partial<Appointment>): Promise<Appointment> {
+  async getDoctorTimeSlots(doctorId: number, date: string): Promise<TimeSlot[]> {
     try {
-      const response: AxiosResponse<Appointment> = await api.post('/api/appointments', appointmentData);
+      const response: AxiosResponse<TimeSlot[]> = await api.get(`/api/appointments/doctor/${doctorId}/slots`, {
+        params: { date }
+      });
       return response.data;
     } catch (error) {
-      console.error('Error creating appointment:', error);
+      console.error(`Error fetching time slots for doctor ${doctorId} on ${date}:`, error);
       throw error;
     }
   }
 
   /**
-   * Update an appointment
+   * Book a new appointment
+   */
+  async bookAppointment(appointmentData: Partial<Appointment>): Promise<Appointment> {
+    try {
+      const response: AxiosResponse<Appointment> = await api.post('/api/appointments', appointmentData);
+      return response.data;
+    } catch (error) {
+      console.error('Error booking appointment:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update an existing appointment
    */
   async updateAppointment(appointmentId: number, appointmentData: Partial<Appointment>): Promise<Appointment> {
     try {
@@ -114,42 +129,42 @@ class AppointmentService {
   }
 
   /**
-   * Get available time slots for a doctor on a specific date
+   * Check in a patient for their appointment
    */
-  async getDoctorTimeSlots(doctorId: number, date: string): Promise<TimeSlot[]> {
+  async checkInAppointment(appointmentId: number): Promise<Appointment> {
     try {
-      const response: AxiosResponse<TimeSlot[]> = await api.get(`/api/appointments/doctor/${doctorId}/time-slots`, {
-        params: { date }
+      const response: AxiosResponse<Appointment> = await api.patch(`/api/appointments/${appointmentId}/check-in`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error checking in appointment ${appointmentId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Complete an appointment and add notes
+   */
+  async completeAppointment(appointmentId: number, notes: string): Promise<Appointment> {
+    try {
+      const response: AxiosResponse<Appointment> = await api.patch(`/api/appointments/${appointmentId}/complete`, { notes });
+      return response.data;
+    } catch (error) {
+      console.error(`Error completing appointment ${appointmentId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get doctor's upcoming schedule
+   */
+  async getDoctorSchedule(doctorId: number, startDate: string, endDate: string): Promise<Appointment[]> {
+    try {
+      const response: AxiosResponse<Appointment[]> = await api.get(`/api/appointments/doctor/${doctorId}/schedule`, {
+        params: { startDate, endDate }
       });
       return response.data;
     } catch (error) {
-      console.error(`Error fetching time slots for doctor ${doctorId} on ${date}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get all appointments for a doctor
-   */
-  async getDoctorAppointments(doctorId: number): Promise<Appointment[]> {
-    try {
-      const response: AxiosResponse<Appointment[]> = await api.get(`/api/appointments/doctor/${doctorId}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching appointments for doctor ${doctorId}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get appointments for a doctor on a specific date
-   */
-  async getDoctorAppointmentsByDate(doctorId: number, date: string): Promise<Appointment[]> {
-    try {
-      const response: AxiosResponse<Appointment[]> = await api.get(`/api/appointments/doctor/${doctorId}/date/${date}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching appointments for doctor ${doctorId} on ${date}:`, error);
+      console.error(`Error fetching schedule for doctor ${doctorId}:`, error);
       throw error;
     }
   }

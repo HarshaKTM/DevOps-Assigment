@@ -25,6 +25,8 @@ import LoginPage from './pages/Auth/LoginPage';
 import RegisterPage from './pages/Auth/RegisterPage';
 import ForgotPasswordPage from './pages/Auth/ForgotPasswordPage';
 import NotFoundPage from './pages/NotFoundPage';
+import DoctorFormPage from './pages/Doctors/DoctorFormPage';
+import PatientFormPage from './pages/Patients/PatientFormPage';
 
 // Redux
 import { RootState, AppDispatch } from './store';
@@ -58,6 +60,12 @@ const App: React.FC = () => {
     
     // Role-based access control
     if (allowedRoles.length > 0 && user && !allowedRoles.includes(user.role)) {
+      // Redirect based on role
+      if (user.role === 'doctor') {
+        return <Navigate to="/appointments" />;
+      } else if (user.role === 'admin') {
+        return <Navigate to="/doctors" />;
+      }
       return <Navigate to="/dashboard" />;
     }
     
@@ -81,16 +89,19 @@ const App: React.FC = () => {
             <Route element={<MainLayout />}>
               <Route path="/" element={<Navigate to="/dashboard" />} />
               
+              {/* Dashboard - accessible by all authenticated users */}
               <Route 
                 path="/dashboard" 
                 element={<ProtectedRoute element={<DashboardPage />} />} 
               />
               
+              {/* Appointments - accessible by all but with different views */}
               <Route 
                 path="/appointments" 
                 element={<ProtectedRoute element={<AppointmentsPage />} />} 
               />
               
+              {/* Patient-only routes */}
               <Route 
                 path="/appointments/new" 
                 element={<ProtectedRoute element={<BookAppointmentPage />} allowedRoles={['patient']} />} 
@@ -101,26 +112,49 @@ const App: React.FC = () => {
                 element={<ProtectedRoute element={<AppointmentDetailsPage />} />} 
               />
               
+              {/* Doctors management - Admin only */}
               <Route 
                 path="/doctors" 
-                element={<ProtectedRoute element={<DoctorsPage />} />} 
+                element={<ProtectedRoute element={<DoctorsPage />} allowedRoles={['admin']} />} 
+              />
+              
+              <Route 
+                path="/doctors/add" 
+                element={<ProtectedRoute element={<DoctorFormPage />} allowedRoles={['admin']} />} 
+              />
+              
+              <Route 
+                path="/doctors/:id/edit" 
+                element={<ProtectedRoute element={<DoctorFormPage />} allowedRoles={['admin']} />} 
               />
               
               <Route 
                 path="/doctors/:id" 
-                element={<ProtectedRoute element={<DoctorDetailsPage />} />} 
+                element={<ProtectedRoute element={<DoctorDetailsPage />} allowedRoles={['admin', 'doctor']} />} 
+              />
+              
+              {/* Patients management - Admin and Doctor only */}
+              <Route 
+                path="/patients" 
+                element={<ProtectedRoute element={<PatientsPage />} allowedRoles={['admin', 'doctor']} />} 
               />
               
               <Route 
-                path="/patients" 
-                element={<ProtectedRoute element={<PatientsPage />} allowedRoles={['admin', 'doctor', 'staff']} />} 
+                path="/patients/add" 
+                element={<ProtectedRoute element={<PatientFormPage />} allowedRoles={['admin']} />} 
+              />
+              
+              <Route 
+                path="/patients/:id/edit" 
+                element={<ProtectedRoute element={<PatientFormPage />} allowedRoles={['admin']} />} 
               />
               
               <Route 
                 path="/patients/:id" 
-                element={<ProtectedRoute element={<PatientDetailsPage />} allowedRoles={['admin', 'doctor', 'staff']} />} 
+                element={<ProtectedRoute element={<PatientDetailsPage />} allowedRoles={['admin', 'doctor']} />} 
               />
               
+              {/* Medical records - accessed by doctor and patient (but filtered) */}
               <Route 
                 path="/medical-records" 
                 element={<ProtectedRoute element={<MedicalRecordsPage />} />} 
