@@ -1,0 +1,161 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: appointment-service
+  namespace: healthcare-system
+  labels:
+    app: appointment-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: appointment-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: appointment-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: appointment-service-sa
+      containers:
+      - name: appointment-service
+        image: ${ARTIFACT_REGISTRY}/appointment-service:${IMAGE_TAG}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "8080"
+        - name: DB_NAME
+          value: "appointment_service"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: appointment-service-db-credentials
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: appointment-service-db-credentials
+              key: password
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: appointment-service-db-credentials
+              key: host
+        - name: DB_PORT
+          valueFrom:
+            secretKeyRef:
+              name: appointment-service-db-credentials
+              key: port
+        - name: DB_SSL
+          value: "true"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secret
+              key: value
+        - name: LOG_LEVEL
+          value: "info"
+        - name: PATIENT_SERVICE_URL
+          value: "http://patient-service:8080"
+        - name: DOCTOR_SERVICE_URL
+          value: "http://doctor-service:8080"
+        - name: NOTIFICATION_SERVICE_URL
+          value: "http://notification-service:8080"
+        - name: PUBSUB_TOPIC_APPOINTMENT_CREATED
+          value: "appointment-created-${ENVIRONMENT}"
+        - name: PUBSUB_TOPIC_APPOINTMENT_UPDATED
+          value: "appointment-updated-${ENVIRONMENT}"
+        - name: PUBSUB_TOPIC_APPOINTMENT_CANCELED
+          value: "appointment-canceled-${ENVIRONMENT}"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: tmp-volume
+          mountPath: /tmp
+        - name: appointment-service-config
+          mountPath: /app/config
+          readOnly: true
+      volumes:
+      - name: tmp-volume
+        emptyDir: {}
+      - name: appointment-service-config
+        configMap:
+          name: appointment-service-configmap
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: appointment-service
+  namespace: healthcare-system
+  labels:
+    app: appointment-service
+spec:
+  selector:
+    app: appointment-service
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: appointment-service-sa
+  namespace: healthcare-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: appointment-service-configmap
+  namespace: healthcare-system
+data:
+  logging.json: |
+    {
+      "level": "info",
+      "format": "json",
+      "service": "appointment-service"
+    }
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: appointment-service-pdb
+  namespace: healthcare-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: appointment-service 

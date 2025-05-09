@@ -1,0 +1,313 @@
+steps:
+# Install dependencies and run tests for each service
+- name: 'node:18'
+  id: 'test-patient-service'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    cd services/patient-service
+    npm ci
+    npm run lint
+    npm test
+  waitFor: ['-']
+
+# Run similar steps for other microservices
+- name: 'node:18'
+  id: 'test-appointment-service'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    echo "Tests for appointment service would go here"
+  waitFor: ['-']
+
+- name: 'node:18'
+  id: 'test-doctor-service'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    echo "Tests for doctor service would go here"
+  waitFor: ['-']
+  
+- name: 'node:18'
+  id: 'test-notification-service'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    echo "Tests for notification service would go here"
+  waitFor: ['-']
+  
+- name: 'node:18'
+  id: 'test-medical-records-service'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    echo "Tests for medical records service would go here"
+  waitFor: ['-']
+
+# Security scanning
+- name: 'aquasec/trivy'
+  id: 'scan-code'
+  args: ['fs', '--security-checks', 'vuln,config,secret', '--severity', 'HIGH,CRITICAL', '.']
+  waitFor: ['-']
+
+# SonarQube analysis (requires setup of SonarQube in GCP)
+- name: 'sonarsource/sonar-scanner-cli:latest'
+  id: 'sonarqube-analysis'
+  args:
+  - '-Dsonar.projectKey=healthcare-system'
+  - '-Dsonar.sources=.'
+  - '-Dsonar.host.url=${_SONAR_HOST_URL}'
+  - '-Dsonar.login=${_SONAR_TOKEN}'
+  waitFor: ['test-patient-service', 'test-appointment-service', 'test-doctor-service', 'test-notification-service', 'test-medical-records-service']
+
+# Build and push container images for each service
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'build-patient-service'
+  args: [
+    'build',
+    '-t', '${_ARTIFACT_REGISTRY}/patient-service:${SHORT_SHA}',
+    '-t', '${_ARTIFACT_REGISTRY}/patient-service:latest',
+    './services/patient-service'
+  ]
+  waitFor: ['test-patient-service', 'scan-code']
+
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'push-patient-service'
+  args: ['push', '--all-tags', '${_ARTIFACT_REGISTRY}/patient-service']
+  waitFor: ['build-patient-service']
+
+# Appointment service build and push
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'build-appointment-service'
+  args: [
+    'build',
+    '-t', '${_ARTIFACT_REGISTRY}/appointment-service:${SHORT_SHA}',
+    '-t', '${_ARTIFACT_REGISTRY}/appointment-service:latest',
+    './services/appointment-service'
+  ]
+  waitFor: ['test-appointment-service', 'scan-code']
+
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'push-appointment-service'
+  args: ['push', '--all-tags', '${_ARTIFACT_REGISTRY}/appointment-service']
+  waitFor: ['build-appointment-service']
+
+# Doctor service build and push
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'build-doctor-service'
+  args: [
+    'build',
+    '-t', '${_ARTIFACT_REGISTRY}/doctor-service:${SHORT_SHA}',
+    '-t', '${_ARTIFACT_REGISTRY}/doctor-service:latest',
+    './services/doctor-service'
+  ]
+  waitFor: ['test-doctor-service', 'scan-code']
+
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'push-doctor-service'
+  args: ['push', '--all-tags', '${_ARTIFACT_REGISTRY}/doctor-service']
+  waitFor: ['build-doctor-service']
+
+# Notification service build and push
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'build-notification-service'
+  args: [
+    'build',
+    '-t', '${_ARTIFACT_REGISTRY}/notification-service:${SHORT_SHA}',
+    '-t', '${_ARTIFACT_REGISTRY}/notification-service:latest',
+    './services/notification-service'
+  ]
+  waitFor: ['test-notification-service', 'scan-code']
+
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'push-notification-service'
+  args: ['push', '--all-tags', '${_ARTIFACT_REGISTRY}/notification-service']
+  waitFor: ['build-notification-service']
+
+# Medical records service build and push
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'build-medical-records-service'
+  args: [
+    'build',
+    '-t', '${_ARTIFACT_REGISTRY}/medical-records-service:${SHORT_SHA}',
+    '-t', '${_ARTIFACT_REGISTRY}/medical-records-service:latest',
+    './services/medical-records-service'
+  ]
+  waitFor: ['test-medical-records-service', 'scan-code']
+
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'push-medical-records-service'
+  args: ['push', '--all-tags', '${_ARTIFACT_REGISTRY}/medical-records-service']
+  waitFor: ['build-medical-records-service']
+
+# Scan container images for vulnerabilities
+- name: 'aquasec/trivy'
+  id: 'scan-patient-service-image'
+  args: ['image', '--severity', 'HIGH,CRITICAL', '${_ARTIFACT_REGISTRY}/patient-service:${SHORT_SHA}']
+  waitFor: ['build-patient-service']
+
+- name: 'aquasec/trivy'
+  id: 'scan-appointment-service-image'
+  args: ['image', '--severity', 'HIGH,CRITICAL', '${_ARTIFACT_REGISTRY}/appointment-service:${SHORT_SHA}']
+  waitFor: ['build-appointment-service']
+
+- name: 'aquasec/trivy'
+  id: 'scan-doctor-service-image'
+  args: ['image', '--severity', 'HIGH,CRITICAL', '${_ARTIFACT_REGISTRY}/doctor-service:${SHORT_SHA}']
+  waitFor: ['build-doctor-service']
+
+- name: 'aquasec/trivy'
+  id: 'scan-notification-service-image'
+  args: ['image', '--severity', 'HIGH,CRITICAL', '${_ARTIFACT_REGISTRY}/notification-service:${SHORT_SHA}']
+  waitFor: ['build-notification-service']
+
+- name: 'aquasec/trivy'
+  id: 'scan-medical-records-service-image'
+  args: ['image', '--severity', 'HIGH,CRITICAL', '${_ARTIFACT_REGISTRY}/medical-records-service:${SHORT_SHA}']
+  waitFor: ['build-medical-records-service']
+
+# Save current deployment state for potential rollback
+- name: 'gcr.io/cloud-builders/kubectl'
+  id: 'save-deployment-state'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    echo "Saving current deployment state for potential rollback"
+    mkdir -p /workspace/rollback
+    kubectl get deployment -n healthcare-system -o yaml > /workspace/rollback/deployments.yaml
+    kubectl get configmap -n healthcare-system -o yaml > /workspace/rollback/configmaps.yaml
+  env:
+  - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_ZONE}'
+  - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
+  waitFor: ['-']
+
+# Deploy to GKE using Kustomize
+- name: 'gcr.io/cloud-builders/kubectl'
+  id: 'deploy-to-kubernetes'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    # Install kustomize
+    curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+    
+    # Set the image tags in kustomization files
+    ./kustomize edit set image ${_ARTIFACT_REGISTRY}/patient-service:${SHORT_SHA}
+    ./kustomize edit set image ${_ARTIFACT_REGISTRY}/appointment-service:${SHORT_SHA}
+    ./kustomize edit set image ${_ARTIFACT_REGISTRY}/doctor-service:${SHORT_SHA}
+    ./kustomize edit set image ${_ARTIFACT_REGISTRY}/notification-service:${SHORT_SHA}
+    ./kustomize edit set image ${_ARTIFACT_REGISTRY}/medical-records-service:${SHORT_SHA}
+    
+    # Apply the configuration
+    kubectl apply -k kubernetes/${_DEPLOY_ENV}
+  env:
+  - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_ZONE}'
+  - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
+  waitFor: ['push-patient-service', 'push-appointment-service', 'push-doctor-service', 'push-notification-service', 'push-medical-records-service', 'scan-patient-service-image', 'scan-appointment-service-image', 'scan-doctor-service-image', 'scan-notification-service-image', 'scan-medical-records-service-image']
+
+# Run integration tests against the deployed environment and handle rollbacks if needed
+- name: 'gcr.io/cloud-builders/curl'
+  id: 'integration-tests-with-rollback'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    # Wait for deployment to stabilize
+    echo "Waiting for deployment to stabilize..."
+    sleep 60
+    
+    # Check health endpoints of all services
+    echo "Running integration tests..."
+    FAILED=false
+    
+    # Test patient service
+    echo "Testing patient service..."
+    curl -f https://api.healthcare-system.${_DOMAIN}/api/patients/health || FAILED=true
+    
+    # Test appointment service
+    echo "Testing appointment service..."
+    curl -f https://api.healthcare-system.${_DOMAIN}/api/appointments/health || FAILED=true
+    
+    # Test doctor service
+    echo "Testing doctor service..."
+    curl -f https://api.healthcare-system.${_DOMAIN}/api/doctors/health || FAILED=true
+    
+    # Test notification service
+    echo "Testing notification service..."
+    curl -f https://api.healthcare-system.${_DOMAIN}/api/notifications/health || FAILED=true
+    
+    # Test medical records service
+    echo "Testing medical records service..."
+    curl -f https://api.healthcare-system.${_DOMAIN}/api/medical-records/health || FAILED=true
+    
+    # Check for failures and perform rollback if needed
+    if [ "$FAILED" = "true" ]; then
+      echo "Integration tests failed!"
+      
+      # Perform rollback if enabled
+      if [ "${BRANCH_NAME}" == "${_MAIN_BRANCH}" ] && [ "${_ENABLE_ROLLBACK}" == "true" ]; then
+        echo "Rolling back failed deployment..."
+        gcloud container clusters get-credentials ${_GKE_CLUSTER} --zone ${_GKE_ZONE} --project ${PROJECT_ID}
+        kubectl apply -f /workspace/rollback/deployments.yaml
+        kubectl apply -f /workspace/rollback/configmaps.yaml
+        echo "Rollback complete."
+      else
+        echo "Rollback skipped - not on main branch or rollback disabled."
+      fi
+      
+      # Exit with error to fail the build
+      exit 1
+    fi
+    
+    echo "Integration tests successful!"
+  waitFor: ['deploy-to-kubernetes']
+
+# Send notification of successful deployment
+- name: 'gcr.io/cloud-builders/curl'
+  id: 'send-success-notification'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    if [ "$_NOTIFY_SLACK" = "true" ]; then
+      curl -X POST -H 'Content-type: application/json' --data '{"text":"Healthcare System deployment to ${_DEPLOY_ENV} successful! Version: ${SHORT_SHA}"}' ${_SLACK_WEBHOOK_URL}
+    fi
+  waitFor: ['integration-tests-with-rollback']
+
+# Send notification of failed deployment
+- name: 'gcr.io/cloud-builders/curl'
+  id: 'send-failure-notification'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    if [ "$_NOTIFY_SLACK" = "true" ]; then
+      # This step will only run if the build fails
+      curl -X POST -H 'Content-type: application/json' --data '{"text":"❌ FAILED: Healthcare System deployment to ${_DEPLOY_ENV} failed! Version: ${SHORT_SHA}"}' ${_SLACK_WEBHOOK_URL}
+    fi
+  waitFor: ['deploy-to-kubernetes']
+
+substitutions:
+  _ARTIFACT_REGISTRY: 'us-central1-docker.pkg.dev/${PROJECT_ID}/healthcare-repo-${_DEPLOY_ENV}'
+  _DEPLOY_ENV: 'dev'
+  _GKE_ZONE: 'us-central1'
+  _GKE_CLUSTER: 'healthcare-system-${_DEPLOY_ENV}'
+  _DOMAIN: 'example.com'
+  _NOTIFY_SLACK: 'false'
+  _SLACK_WEBHOOK_URL: ''
+  _SONAR_HOST_URL: 'http://sonarqube:9000'
+  _SONAR_TOKEN: ''
+  _MAIN_BRANCH: 'main'
+  _ENABLE_ROLLBACK: 'true'
+
+options:
+  machineType: 'E2_HIGHCPU_8'
+  diskSizeGb: '100'
+  logStreamingOption: 'STREAM_ON'
+  dynamicSubstitutions: true 

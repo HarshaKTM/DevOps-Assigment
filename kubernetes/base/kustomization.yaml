@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../common/namespace.yaml
+  - ../common/istio-gateway.yaml
+  - ../patient-service/deployment.yaml
+  - ../appointment-service/deployment.yaml
+  - ../doctor-service/deployment.yaml
+  - ../notification-service/deployment.yaml
+  - ../medical-records-service/deployment.yaml
+
+# Common labels for all resources
+commonLabels:
+  app.kubernetes.io/part-of: healthcare-system 

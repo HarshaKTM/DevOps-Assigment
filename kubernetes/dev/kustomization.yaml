@@ -1,0 +1,54 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namePrefix: dev-
+
+resources:
+  - ../base
+
+# Common labels for all resources
+commonLabels:
+  environment: dev
+
+# Patches to apply for development environment
+patches:
+  - path: patches/replica-count.yaml
+    target:
+      kind: Deployment
+      name: .*
+
+configMapGenerator:
+  - name: dev-config
+    literals:
+      - ENVIRONMENT=dev
+      - LOG_LEVEL=debug
+
+vars:
+  - name: ENVIRONMENT
+    objref:
+      kind: ConfigMap
+      name: dev-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.ENVIRONMENT
+  - name: ARTIFACT_REGISTRY
+    objref:
+      kind: ConfigMap
+      name: dev-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.ARTIFACT_REGISTRY
+  - name: IMAGE_TAG
+    objref:
+      kind: ConfigMap
+      name: dev-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.IMAGE_TAG
+  - name: PROJECT_ID
+    objref:
+      kind: ConfigMap
+      name: dev-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.PROJECT_ID 

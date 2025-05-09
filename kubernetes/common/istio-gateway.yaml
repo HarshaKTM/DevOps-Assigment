@@ -1,0 +1,76 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: healthcare-gateway
+  namespace: healthcare-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "api.healthcare-system.${DOMAIN}"
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    hosts:
+    - "api.healthcare-system.${DOMAIN}"
+    tls:
+      mode: SIMPLE
+      credentialName: healthcare-tls-cert
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: healthcare-api-gateway
+  namespace: healthcare-system
+spec:
+  hosts:
+  - "api.healthcare-system.${DOMAIN}"
+  gateways:
+  - healthcare-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /api/patients
+    route:
+    - destination:
+        host: patient-service
+        port:
+          number: 8080
+  - match:
+    - uri:
+        prefix: /api/appointments
+    route:
+    - destination:
+        host: appointment-service
+        port:
+          number: 8080
+  - match:
+    - uri:
+        prefix: /api/doctors
+    route:
+    - destination:
+        host: doctor-service
+        port:
+          number: 8080
+  - match:
+    - uri:
+        prefix: /api/medical-records
+    route:
+    - destination:
+        host: medical-records-service
+        port:
+          number: 8080
+  - match:
+    - uri:
+        prefix: /api/notifications
+    route:
+    - destination:
+        host: notification-service
+        port:
+          number: 8080 

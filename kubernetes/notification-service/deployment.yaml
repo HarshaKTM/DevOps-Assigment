@@ -1,0 +1,207 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: healthcare-system
+  labels:
+    app: notification-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: notification-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: notification-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: notification-service-sa
+      containers:
+      - name: notification-service
+        image: ${ARTIFACT_REGISTRY}/notification-service:${IMAGE_TAG}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "8080"
+        - name: LOG_LEVEL
+          value: "info"
+        - name: PUBSUB_SUBSCRIPTION_APPOINTMENT_CREATED
+          value: "notification-appointment-created-${ENVIRONMENT}"
+        - name: PUBSUB_SUBSCRIPTION_APPOINTMENT_UPDATED
+          value: "notification-appointment-updated-${ENVIRONMENT}"
+        - name: PUBSUB_SUBSCRIPTION_APPOINTMENT_CANCELED
+          value: "notification-appointment-canceled-${ENVIRONMENT}"
+        - name: PUBSUB_TOPIC_NOTIFICATION_DLQ
+          value: "notification-dlq-${ENVIRONMENT}"
+        - name: EMAIL_SERVICE
+          value: "smtp"
+        - name: EMAIL_HOST
+          valueFrom:
+            secretKeyRef:
+              name: notification-service-secrets
+              key: email_host
+        - name: EMAIL_PORT
+          valueFrom:
+            secretKeyRef:
+              name: notification-service-secrets
+              key: email_port
+        - name: EMAIL_USER
+          valueFrom:
+            secretKeyRef:
+              name: notification-service-secrets
+              key: email_user
+        - name: EMAIL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: notification-service-secrets
+              key: email_password
+        - name: EMAIL_FROM
+          value: "no-reply@healthcare-system.example.com"
+        - name: SMS_SERVICE
+          value: "twilio"
+        - name: SMS_ACCOUNT_SID
+          valueFrom:
+            secretKeyRef:
+              name: notification-service-secrets
+              key: sms_account_sid
+        - name: SMS_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: notification-service-secrets
+              key: sms_auth_token
+        - name: SMS_FROM_NUMBER
+          valueFrom:
+            secretKeyRef:
+              name: notification-service-secrets
+              key: sms_from_number
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: tmp-volume
+          mountPath: /tmp
+        - name: notification-templates
+          mountPath: /app/templates
+          readOnly: true
+      volumes:
+      - name: tmp-volume
+        emptyDir: {}
+      - name: notification-templates
+        configMap:
+          name: notification-templates-configmap
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: healthcare-system
+  labels:
+    app: notification-service
+spec:
+  selector:
+    app: notification-service
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: notification-service-sa
+  namespace: healthcare-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notification-templates-configmap
+  namespace: healthcare-system
+data:
+  appointment-confirmation.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Appointment Confirmation</title>
+    </head>
+    <body>
+      <h1>Appointment Confirmation</h1>
+      <p>Dear {{patientName}},</p>
+      <p>Your appointment with {{doctorName}} has been scheduled for {{appointmentDate}} at {{appointmentTime}}.</p>
+      <p>Location: {{location}}</p>
+      <p>Please arrive 15 minutes early for check-in.</p>
+      <p>Best regards,<br>Healthcare Appointment System</p>
+    </body>
+    </html>
+  appointment-reminder.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Appointment Reminder</title>
+    </head>
+    <body>
+      <h1>Appointment Reminder</h1>
+      <p>Dear {{patientName}},</p>
+      <p>This is a reminder that you have an appointment with {{doctorName}} tomorrow at {{appointmentTime}}.</p>
+      <p>Location: {{location}}</p>
+      <p>Please arrive 15 minutes early for check-in.</p>
+      <p>Best regards,<br>Healthcare Appointment System</p>
+    </body>
+    </html>
+  appointment-canceled.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Appointment Canceled</title>
+    </head>
+    <body>
+      <h1>Appointment Canceled</h1>
+      <p>Dear {{patientName}},</p>
+      <p>Your appointment with {{doctorName}} scheduled for {{appointmentDate}} at {{appointmentTime}} has been canceled.</p>
+      <p>If you did not request this cancellation, please contact us immediately.</p>
+      <p>Best regards,<br>Healthcare Appointment System</p>
+    </body>
+    </html>
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: notification-service-pdb
+  namespace: healthcare-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: notification-service 
