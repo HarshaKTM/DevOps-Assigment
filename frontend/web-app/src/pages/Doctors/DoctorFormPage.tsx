@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
-import { fetchDoctorById, createDoctor, updateDoctor } from '../../store/slices/doctorSlice';
+import { fetchDoctorById, createDoctor, updateDoctor, Doctor } from '../../store/slices/doctorSlice';
 import { SelectChangeEvent } from '@mui/material/Select';
 
 interface DoctorFormData {
@@ -28,7 +28,7 @@ interface DoctorFormData {
   qualifications: string[];
   yearsOfExperience: number;
   about: string;
-  education: string[];
+  education: { degree: string; institution: string; year: number; }[];
   avatar?: string;
 }
 
@@ -62,7 +62,7 @@ const DoctorFormPage: React.FC = () => {
     qualifications: [],
     yearsOfExperience: 0,
     about: '',
-    education: [''],
+    education: [{ degree: '', institution: '', year: new Date().getFullYear() }],
   });
 
   useEffect(() => {
@@ -105,9 +105,12 @@ const DoctorFormPage: React.FC = () => {
     }
   };
 
-  const handleEducationChange = (index: number, value: string) => {
+  const handleEducationChange = (index: number, field: string, value: string | number) => {
     const newEducation = [...formData.education];
-    newEducation[index] = value;
+    newEducation[index] = {
+      ...newEducation[index],
+      [field]: field === 'year' ? Number(value) : value
+    };
     setFormData((prev) => ({
       ...prev,
       education: newEducation,
@@ -117,7 +120,7 @@ const DoctorFormPage: React.FC = () => {
   const addEducationField = () => {
     setFormData((prev) => ({
       ...prev,
-      education: [...prev.education, ''],
+      education: [...prev.education, { degree: '', institution: '', year: new Date().getFullYear() }],
     }));
   };
 
@@ -261,13 +264,32 @@ const DoctorFormPage: React.FC = () => {
                 Education
               </Typography>
               {formData.education.map((edu, index) => (
-                <Box key={index} sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                <Box key={index} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3, p: 2, border: '1px solid #eee', borderRadius: 1 }}>
+                  <Typography variant="subtitle2">Education #{index + 1}</Typography>
                   <TextField
                     fullWidth
-                    label={`Education ${index + 1}`}
-                    value={edu}
-                    onChange={(e) => handleEducationChange(index, e.target.value)}
+                    label="Degree"
+                    value={edu.degree}
+                    onChange={(e) => handleEducationChange(index, 'degree', e.target.value)}
                     required
+                    sx={{ mb: 1 }}
+                  />
+                  <TextField
+                    fullWidth
+                    label="Institution"
+                    value={edu.institution}
+                    onChange={(e) => handleEducationChange(index, 'institution', e.target.value)}
+                    required
+                    sx={{ mb: 1 }}
+                  />
+                  <TextField
+                    fullWidth
+                    label="Year"
+                    type="number"
+                    value={edu.year}
+                    onChange={(e) => handleEducationChange(index, 'year', e.target.value)}
+                    required
+                    sx={{ mb: 1 }}
                   />
                   {index > 0 && (
                     <Button

@@ -5,7 +5,7 @@ import { Doctor } from '../store/slices/doctorSlice';
 // Mock data for development
 const isDevEnvironment = true;
 
-// Mock doctors data
+// Mock doctors data with fixed availability structure
 const mockDoctors = [
   {
     id: 201,
@@ -18,11 +18,11 @@ const mockDoctors = [
     avatar: 'https://i.pravatar.cc/150?u=doctor1',
     bio: 'Dr. Sarah Johnson is a board-certified cardiologist with over 12 years of experience in treating heart conditions.',
     availability: {
-      monday: { start: '09:00', end: '17:00' },
-      tuesday: { start: '09:00', end: '17:00' },
-      wednesday: { start: '09:00', end: '17:00' },
-      thursday: { start: '09:00', end: '17:00' },
-      friday: { start: '09:00', end: '13:00' },
+      monday: ['09:00-12:00', '13:00-17:00'],
+      tuesday: ['09:00-12:00', '13:00-17:00'],
+      wednesday: ['09:00-12:00', '13:00-17:00'],
+      thursday: ['09:00-12:00', '13:00-17:00'],
+      friday: ['09:00-13:00']
     }
   },
   {
@@ -36,11 +36,11 @@ const mockDoctors = [
     avatar: 'https://i.pravatar.cc/150?u=doctor2',
     bio: 'Dr. Michael Chen is a neurologist specializing in the treatment of neurological disorders and stroke care.',
     availability: {
-      monday: { start: '10:00', end: '18:00' },
-      tuesday: { start: '10:00', end: '18:00' },
-      wednesday: { start: '10:00', end: '18:00' },
-      thursday: { start: '10:00', end: '18:00' },
-      friday: { start: '10:00', end: '16:00' },
+      monday: ['10:00-13:00', '14:00-18:00'],
+      tuesday: ['10:00-13:00', '14:00-18:00'],
+      wednesday: ['10:00-13:00', '14:00-18:00'],
+      thursday: ['10:00-13:00', '14:00-18:00'],
+      friday: ['10:00-16:00']
     }
   },
   {
@@ -54,11 +54,11 @@ const mockDoctors = [
     avatar: 'https://i.pravatar.cc/150?u=doctor3',
     bio: 'Dr. Emily Rodriguez is a dermatologist who treats a wide range of skin conditions from acne to skin cancer.',
     availability: {
-      monday: { start: '09:00', end: '16:00' },
-      tuesday: { start: '09:00', end: '16:00' },
-      wednesday: { start: '09:00', end: '16:00' },
-      thursday: { start: '09:00', end: '16:00' },
-      friday: { start: '09:00', end: '14:00' },
+      monday: ['09:00-12:00', '13:00-16:00'],
+      tuesday: ['09:00-12:00', '13:00-16:00'],
+      wednesday: ['09:00-12:00', '13:00-16:00'],
+      thursday: ['09:00-12:00', '13:00-16:00'],
+      friday: ['09:00-14:00']
     }
   },
   {
@@ -72,11 +72,11 @@ const mockDoctors = [
     avatar: 'https://i.pravatar.cc/150?u=doctor4',
     bio: 'Dr. James Wilson is an experienced family physician who provides comprehensive primary care for patients of all ages.',
     availability: {
-      monday: { start: '08:00', end: '17:00' },
-      tuesday: { start: '08:00', end: '17:00' },
-      wednesday: { start: '08:00', end: '17:00' },
-      thursday: { start: '08:00', end: '17:00' },
-      friday: { start: '08:00', end: '15:00' },
+      monday: ['08:00-12:00', '13:00-17:00'],
+      tuesday: ['08:00-12:00', '13:00-17:00'],
+      wednesday: ['08:00-12:00', '13:00-17:00'],
+      thursday: ['08:00-12:00', '13:00-17:00'],
+      friday: ['08:00-15:00']
     }
   },
 ];

@@ -118,16 +118,18 @@ class AppointmentService {
   /**
    * Book a new appointment
    */
-  async bookAppointment(appointmentData: Partial<Appointment>): Promise<Appointment> {
+  async bookAppointment(appointmentData: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>): Promise<Appointment> {
     try {
       if (isDevEnvironment) {
         // Create mock appointment for development
-        const newAppointment: Appointment = {
+        const newAppointment = {
           id: Math.floor(Math.random() * 1000) + 1,
           ...appointmentData,
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
+          updatedAt: new Date().toISOString(),
+          status: appointmentData.status || 'scheduled'
+        } as Appointment;
+        
         mockAppointments.push(newAppointment);
         return newAppointment;
       } else {
