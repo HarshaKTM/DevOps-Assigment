@@ -117,7 +117,7 @@ describe('Appointment Service', () => {
       date: '2023-06-15',
       startTime: '10:00',
       endTime: '10:30',
-      type: 'regular',
+      type: 'regular' as const,
       reason: 'Annual checkup'
     };
     

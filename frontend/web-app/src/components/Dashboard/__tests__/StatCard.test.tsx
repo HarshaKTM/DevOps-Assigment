@@ -31,21 +31,20 @@ describe('StatCard Component', () => {
   });
 
   test('renders the component with comparison if provided', () => {
-    render(<StatCard {...defaultProps} comparison={{ type: 'increase', value: '10%' }} />);
+    render(<StatCard {...defaultProps} comparison={{ type: 'increase' as const, value: '10%' }} />);
     
     // Check that the comparison text is rendered
     expect(screen.getByText('10%')).toBeInTheDocument();
   });
 
-  test('renders without an icon if not provided', () => {
-    const { icon, ...propsWithoutIcon } = defaultProps;
-    render(<StatCard {...propsWithoutIcon} />);
+  test('renders without optional props', () => {
+    render(<StatCard {...defaultProps} />);
     
     // Check that the title and value are still rendered
     expect(screen.getByText('Test Stat')).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
     
-    // Check that the icon is not rendered
-    expect(screen.queryByTestId('mock-icon')).not.toBeInTheDocument();
+    // Check that the icon is rendered (since it's required)
+    expect(screen.getByTestId('mock-icon')).toBeInTheDocument();
   });
 }); 
