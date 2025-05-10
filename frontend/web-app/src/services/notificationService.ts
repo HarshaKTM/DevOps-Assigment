@@ -1,4 +1,4 @@
-import api from './api';
+import { api } from './api';
 import { AxiosResponse } from 'axios';
 
 export interface Notification {

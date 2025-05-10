@@ -1,53 +1,49 @@
 import React from 'react';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow, 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Paper,
-  Button,
+  Typography,
   Chip,
   IconButton,
-  Tooltip,
-  Stack,
+  Box,
+  useTheme,
 } from '@mui/material';
-import { 
-  Visibility as ViewIcon,
-  Edit as EditIcon,
-  Cancel as CancelIcon,
-} from '@mui/icons-material';
+import { Visibility, Edit, Cancel } from '@mui/icons-material';
 import { format } from 'date-fns';
-import { Appointment } from '../../services/appointmentService';
+import { Appointment } from '../../store/slices/appointmentSlice';
 
 interface AppointmentListProps {
   appointments: Appointment[];
-  onView: (appointmentId: number) => void;
-  onEdit?: (appointmentId: number) => void;
-  onCancel?: (appointmentId: number) => void;
-  isUpcoming: boolean;
+  onViewAppointment: (appointmentId: number) => void;
+  onEditAppointment?: (appointmentId: number) => void;
+  onCancelAppointment?: (appointmentId: number) => void;
+  showActions?: boolean;
 }
 
 const AppointmentList: React.FC<AppointmentListProps> = ({
   appointments,
-  onView,
-  onEdit,
-  onCancel,
-  isUpcoming,
+  onViewAppointment,
+  onEditAppointment,
+  onCancelAppointment,
+  showActions = true,
 }) => {
-  const getStatusChipColor = (status: string) => {
+  const theme = useTheme();
+
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'scheduled':
-        return 'primary';
+        return theme.palette.info.main;
       case 'completed':
-        return 'success';
+        return theme.palette.success.main;
       case 'cancelled':
-        return 'error';
-      case 'no-show':
-        return 'warning';
+        return theme.palette.error.main;
       default:
-        return 'default';
+        return theme.palette.grey[500];
     }
   };
 
@@ -56,76 +52,96 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
   };
 
   const formatTime = (timeString: string) => {
-    return format(new Date(`2000-01-01T${timeString}`), 'h:mm a');
+    const [hours, minutes] = timeString.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const formattedHours = hours % 12 || 12;
+    return `${formattedHours}:${minutes.toString().padStart(2, '0')} ${period}`;
   };
+
+  if (appointments.length === 0) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+        <Typography variant="subtitle1" color="text.secondary">
+          No appointments found
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <TableContainer component={Paper} elevation={0}>
-      <Table>
+      <Table aria-label="appointments table">
         <TableHead>
           <TableRow>
             <TableCell>Date</TableCell>
             <TableCell>Time</TableCell>
-            <TableCell>Doctor</TableCell>
             <TableCell>Type</TableCell>
+            <TableCell>Reason</TableCell>
             <TableCell>Status</TableCell>
-            <TableCell>Actions</TableCell>
+            {showActions && <TableCell align="right">Actions</TableCell>}
           </TableRow>
         </TableHead>
         <TableBody>
           {appointments.map((appointment) => (
-            <TableRow key={appointment.id}>
+            <TableRow key={appointment.id} hover>
               <TableCell>{formatDate(appointment.date)}</TableCell>
               <TableCell>
                 {formatTime(appointment.startTime)} - {formatTime(appointment.endTime)}
               </TableCell>
-              <TableCell>Dr. {appointment.doctorId}</TableCell>
-              <TableCell sx={{ textTransform: 'capitalize' }}>{appointment.type}</TableCell>
               <TableCell>
-                <Chip 
-                  label={appointment.status} 
-                  color={getStatusChipColor(appointment.status)}
-                  size="small"
+                <Typography
+                  variant="body2"
                   sx={{ textTransform: 'capitalize' }}
+                >
+                  {appointment.type.replace('-', ' ')}
+                </Typography>
+              </TableCell>
+              <TableCell>
+                <Typography variant="body2" noWrap sx={{ maxWidth: 250 }}>
+                  {appointment.reason}
+                </Typography>
+              </TableCell>
+              <TableCell>
+                <Chip
+                  label={appointment.status}
+                  size="small"
+                  sx={{
+                    backgroundColor: getStatusColor(appointment.status),
+                    color: '#fff',
+                    textTransform: 'capitalize',
+                  }}
                 />
               </TableCell>
-              <TableCell>
-                <Stack direction="row" spacing={1}>
-                  <Tooltip title="View details">
-                    <IconButton 
-                      size="small" 
-                      color="primary"
-                      onClick={() => onView(appointment.id)}
+              {showActions && (
+                <TableCell align="right">
+                  <IconButton
+                    size="small"
+                    onClick={() => onViewAppointment(appointment.id)}
+                    aria-label="view appointment"
+                  >
+                    <Visibility fontSize="small" />
+                  </IconButton>
+                  {onEditAppointment && appointment.status === 'scheduled' && (
+                    <IconButton
+                      size="small"
+                      onClick={() => onEditAppointment(appointment.id)}
+                      aria-label="edit appointment"
                     >
-                      <ViewIcon fontSize="small" />
+                      <Edit fontSize="small" />
                     </IconButton>
-                  </Tooltip>
-                  
-                  {isUpcoming && appointment.status === 'scheduled' && onEdit && (
-                    <Tooltip title="Edit appointment">
-                      <IconButton 
-                        size="small" 
-                        color="primary"
-                        onClick={() => onEdit(appointment.id)}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
                   )}
-                  
-                  {isUpcoming && appointment.status === 'scheduled' && onCancel && (
-                    <Tooltip title="Cancel appointment">
-                      <IconButton 
-                        size="small" 
-                        color="error"
-                        onClick={() => onCancel(appointment.id)}
-                      >
-                        <CancelIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
+                  {onCancelAppointment && appointment.status === 'scheduled' && (
+                    <IconButton
+                      size="small"
+                      onClick={() => onCancelAppointment(appointment.id)}
+                      aria-label="cancel appointment"
+                      color="error"
+                    >
+                      <Cancel fontSize="small" />
+                    </IconButton>
                   )}
-                </Stack>
-              </TableCell>
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>

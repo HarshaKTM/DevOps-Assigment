@@ -24,14 +24,25 @@ describe('StatCard Component', () => {
   });
 
   test('renders the component with subtitle if provided', () => {
-    render(<StatCard {...defaultProps} subtitle="Subtitle Text" />);
+    const propsWithSubtitle = {
+      ...defaultProps,
+      subtitle: 'Subtitle Text',
+    };
+    render(<StatCard {...propsWithSubtitle} />);
     
     // Check that the subtitle is rendered
     expect(screen.getByText('Subtitle Text')).toBeInTheDocument();
   });
 
   test('renders the component with comparison if provided', () => {
-    render(<StatCard {...defaultProps} comparison={{ type: 'increase' as const, value: '10%' }} />);
+    const propsWithComparison = {
+      ...defaultProps,
+      comparison: {
+        type: 'increase' as const,
+        value: '10%',
+      },
+    };
+    render(<StatCard {...propsWithComparison} />);
     
     // Check that the comparison text is rendered
     expect(screen.getByText('10%')).toBeInTheDocument();

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Box,
@@ -19,46 +19,98 @@ import {
   FormHelperText,
   Alert,
   Snackbar,
+  Divider,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { format, isAfter, isBefore, addDays } from 'date-fns';
-
+import { format, addDays, isWeekend } from 'date-fns';
+import { AppDispatch } from '../../store';
+import { createAppointment } from '../../store/slices/appointmentSlice';
+import { fetchDoctors, fetchDoctorsBySpecialization, selectDoctors, selectLoading } from '../../store/slices/doctorSlice';
+import { selectUser } from '../../store/slices/authSlice';
+import { TimeSlot, appointmentService } from '../../services/appointmentService';
 import TimeSlotSelector from '../../components/Appointments/TimeSlotSelector';
-import { RootState, AppDispatch } from '../../store';
-import { fetchAllDoctors, fetchDoctorsBySpecialization } from '../../store/slices/doctorSlice';
-import { 
-  fetchTimeSlots, 
-  bookAppointment 
-} from '../../store/slices/appointmentSlice';
-import { Doctor } from '../../services/doctorService';
-import { TimeSlot } from '../../services/appointmentService';
 
-const steps = ['Select Doctor', 'Choose Date & Time', 'Appointment Details', 'Confirm'];
+const appointmentTypes = [
+  { value: 'consultation', label: 'Consultation' },
+  { value: 'follow-up', label: 'Follow-up' },
+  { value: 'emergency', label: 'Emergency' },
+];
+
+const specializations = [
+  'Cardiology',
+  'Dermatology',
+  'Endocrinology',
+  'Gastroenterology',
+  'Neurology',
+  'Obstetrics',
+  'Oncology',
+  'Ophthalmology',
+  'Orthopedics',
+  'Pediatrics',
+  'Psychiatry',
+  'Radiology',
+  'Urology',
+];
 
 const BookAppointmentPage: React.FC = () => {
-  const [activeStep, setActiveStep] = useState(0);
-  const [specialization, setSpecialization] = useState('');
-  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null);
-  const [appointmentType, setAppointmentType] = useState('regular');
-  const [reason, setReason] = useState('');
-  const [notes, setNotes] = useState('');
-  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
   
-  const { user } = useSelector((state: RootState) => state.auth);
-  const { doctors, doctorsBySpecialization, loading: doctorsLoading } = useSelector((state: RootState) => state.doctor);
-  const { availableTimeSlots, loading: appointmentsLoading } = useSelector((state: RootState) => state.appointment);
+  // Get URL query params
+  const queryParams = new URLSearchParams(location.search);
+  const preselectedDoctorId = queryParams.get('doctorId');
+  
+  const user = useSelector(selectUser);
+  const doctors = useSelector(selectDoctors);
+  const isLoading = useSelector(selectLoading);
+  
+  const [step, setStep] = useState(1);
+  const [specialization, setSpecialization] = useState('');
+  const [doctorId, setDoctorId] = useState<number | ''>('');
+  const [appointmentDate, setAppointmentDate] = useState<Date | null>(null);
+  const [appointmentType, setAppointmentType] = useState('');
+  const [reason, setReason] = useState('');
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null);
+  const [loadingTimeSlots, setLoadingTimeSlots] = useState(false);
+  const [notification, setNotification] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'info';
+  }>({
+    open: false,
+    message: '',
+    severity: 'info',
+  });
+  
+  // Form validation
+  const [errors, setErrors] = useState({
+    specialization: '',
+    doctorId: '',
+    appointmentDate: '',
+    appointmentType: '',
+    timeSlot: '',
+    reason: '',
+  });
   
   useEffect(() => {
-    dispatch(fetchAllDoctors());
+    dispatch(fetchDoctors());
   }, [dispatch]);
+  
+  useEffect(() => {
+    if (preselectedDoctorId) {
+      setDoctorId(parseInt(preselectedDoctorId, 10));
+      // Find doctor to set specialization
+      const doctor = doctors.find(d => d.id === parseInt(preselectedDoctorId, 10));
+      if (doctor) {
+        setSpecialization(doctor.specialization);
+      }
+      setStep(2);
+    }
+  }, [preselectedDoctorId, doctors]);
   
   useEffect(() => {
     if (specialization) {
@@ -67,410 +119,521 @@ const BookAppointmentPage: React.FC = () => {
   }, [dispatch, specialization]);
   
   useEffect(() => {
-    if (selectedDoctor && selectedDate) {
-      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-      dispatch(fetchTimeSlots({ doctorId: selectedDoctor.id, date: formattedDate }));
+    if (doctorId && appointmentDate) {
+      fetchTimeSlots();
     }
-  }, [dispatch, selectedDoctor, selectedDate]);
+  }, [doctorId, appointmentDate]);
   
-  const validateStep = () => {
-    const errors: Record<string, string> = {};
+  const fetchTimeSlots = async () => {
+    if (!doctorId || !appointmentDate) return;
     
-    switch (activeStep) {
-      case 0:
-        if (!selectedDoctor) {
-          errors.doctor = 'Please select a doctor';
-        }
-        break;
-      case 1:
-        if (!selectedDate) {
-          errors.date = 'Please select a date';
-        } else if (isBefore(selectedDate, new Date())) {
-          errors.date = 'Please select a future date';
-        }
-        
-        if (!selectedTimeSlot) {
-          errors.timeSlot = 'Please select a time slot';
-        }
-        break;
-      case 2:
-        if (!appointmentType) {
-          errors.type = 'Please select an appointment type';
-        }
-        
-        if (!reason.trim()) {
-          errors.reason = 'Please enter a reason for the appointment';
-        }
-        break;
+    setLoadingTimeSlots(true);
+    setSelectedTimeSlot(null);
+    
+    try {
+      const formattedDate = format(appointmentDate, 'yyyy-MM-dd');
+      const slots = await appointmentService.fetchAvailableTimeSlots(doctorId as number, formattedDate);
+      setAvailableTimeSlots(slots);
+    } catch (error) {
+      console.error('Error fetching time slots:', error);
+      setNotification({
+        open: true,
+        message: 'Failed to fetch available time slots',
+        severity: 'error',
+      });
+    } finally {
+      setLoadingTimeSlots(false);
+    }
+  };
+  
+  const validateStep1 = () => {
+    const newErrors = { ...errors };
+    
+    if (!specialization) {
+      newErrors.specialization = 'Please select a specialization';
+    } else {
+      newErrors.specialization = '';
     }
     
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+    if (!doctorId) {
+      newErrors.doctorId = 'Please select a doctor';
+    } else {
+      newErrors.doctorId = '';
+    }
+    
+    setErrors(newErrors);
+    
+    return !newErrors.specialization && !newErrors.doctorId;
+  };
+  
+  const validateStep2 = () => {
+    const newErrors = { ...errors };
+    
+    if (!appointmentDate) {
+      newErrors.appointmentDate = 'Please select a date';
+    } else {
+      newErrors.appointmentDate = '';
+    }
+    
+    if (!selectedTimeSlot) {
+      newErrors.timeSlot = 'Please select a time slot';
+    } else {
+      newErrors.timeSlot = '';
+    }
+    
+    if (!appointmentType) {
+      newErrors.appointmentType = 'Please select an appointment type';
+    } else {
+      newErrors.appointmentType = '';
+    }
+    
+    setErrors(newErrors);
+    
+    return !newErrors.appointmentDate && !newErrors.timeSlot && !newErrors.appointmentType;
   };
   
   const handleNext = () => {
-    if (validateStep()) {
-      setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    if (step === 1 && validateStep1()) {
+      setStep(2);
+    } else if (step === 2 && validateStep2()) {
+      setStep(3);
     }
   };
   
   const handleBack = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep - 1);
+    if (step > 1) {
+      setStep(step - 1);
+    }
   };
   
-  const handleDoctorSelect = (doctor: Doctor) => {
-    setSelectedDoctor(doctor);
-  };
-  
-  const handleTimeSlotSelect = (timeSlot: TimeSlot) => {
-    setSelectedTimeSlot(timeSlot);
-  };
-  
-  const handleSubmit = async () => {
-    if (!user || !selectedDoctor || !selectedDate || !selectedTimeSlot) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user || !doctorId || !appointmentDate || !selectedTimeSlot || !appointmentType) {
       return;
     }
     
     try {
-      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-      
-      await dispatch(bookAppointment({
+      await dispatch(createAppointment({
         patientId: user.id,
-        doctorId: selectedDoctor.id,
-        date: formattedDate,
-        startTime: selectedTimeSlot.time,
-        endTime: addTimeToSlot(selectedTimeSlot.time, 30), // 30 min appointments
-        type: appointmentType,
-        reason,
-        notes: notes || undefined,
+        doctorId: doctorId as number,
+        date: format(appointmentDate, 'yyyy-MM-dd'),
+        startTime: selectedTimeSlot.startTime,
+        endTime: selectedTimeSlot.endTime,
+        type: appointmentType as 'consultation' | 'follow-up' | 'emergency',
         status: 'scheduled',
-      })).unwrap();
+        reason: reason || undefined,
+      }));
       
       setNotification({
+        open: true,
         message: 'Appointment booked successfully!',
-        type: 'success',
+        severity: 'success',
       });
       
-      // Wait a bit before navigating
       setTimeout(() => {
         navigate('/appointments');
       }, 2000);
     } catch (error) {
+      console.error('Error booking appointment:', error);
       setNotification({
-        message: 'Failed to book appointment. Please try again.',
-        type: 'error',
+        open: true,
+        message: 'Failed to book appointment',
+        severity: 'error',
       });
     }
   };
   
-  const addTimeToSlot = (timeString: string, minutes: number): string => {
-    const [hours, mins] = timeString.split(':').map(Number);
-    const date = new Date();
-    date.setHours(hours, mins);
-    date.setMinutes(date.getMinutes() + minutes);
-    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-  };
-  
   const handleCloseNotification = () => {
-    setNotification(null);
+    setNotification({
+      ...notification,
+      open: false,
+    });
   };
   
-  const getStepContent = (step: number) => {
-    switch (step) {
-      case 0:
-        return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Select a Doctor
+  const disableWeekends = (date: Date) => {
+    return isWeekend(date);
+  };
+  
+  const renderSelectedDoctor = () => {
+    if (!doctorId) return null;
+    
+    const doctor = doctors.find(d => d.id === doctorId);
+    if (!doctor) return null;
+    
+    return (
+      <Box sx={{ mt: 2, p: 2, backgroundColor: 'background.paper', borderRadius: 1 }}>
+        <Typography variant="subtitle1" gutterBottom>
+          Selected Doctor
+        </Typography>
+        <Typography variant="body1">
+          Dr. {doctor.firstName} {doctor.lastName}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {doctor.specialization} • {doctor.yearsOfExperience} years experience
+        </Typography>
+      </Box>
+    );
+  };
+  
+  const filteredDoctors = specialization
+    ? doctors.filter(doctor => doctor.specialization === specialization)
+    : doctors;
+  
+  return (
+    <Box>
+      <Typography variant="h5" component="h1" gutterBottom>
+        Book an Appointment
+      </Typography>
+      
+      <Paper elevation={0} sx={{ p: 3, mb: 3 }}>
+        <Box sx={{ mb: 4 }}>
+          <Box sx={{ display: 'flex', mb: 2 }}>
+            <Box
+              sx={{
+                width: 30,
+                height: 30,
+                borderRadius: '50%',
+                backgroundColor: step >= 1 ? 'primary.main' : 'action.disabled',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mr: 1,
+              }}
+            >
+              1
+            </Box>
+            <Typography
+              variant="body1"
+              sx={{
+                fontWeight: step === 1 ? 'bold' : 'normal',
+                color: step === 1 ? 'text.primary' : 'text.secondary',
+              }}
+            >
+              Select Doctor
             </Typography>
             
-            <FormControl fullWidth sx={{ mb: 3 }}>
-              <InputLabel>Specialization</InputLabel>
-              <Select
-                value={specialization}
-                onChange={(e) => setSpecialization(e.target.value)}
-                label="Specialization"
-              >
-                <MenuItem value="">All</MenuItem>
-                <MenuItem value="Cardiology">Cardiology</MenuItem>
-                <MenuItem value="Dermatology">Dermatology</MenuItem>
-                <MenuItem value="Neurology">Neurology</MenuItem>
-                <MenuItem value="Pediatrics">Pediatrics</MenuItem>
-                <MenuItem value="Psychiatry">Psychiatry</MenuItem>
-                <MenuItem value="Orthopedics">Orthopedics</MenuItem>
-                <MenuItem value="General Medicine">General Medicine</MenuItem>
-              </Select>
-            </FormControl>
+            <Box sx={{ flex: 1, mx: 2, display: 'flex', alignItems: 'center' }}>
+              <Divider sx={{ width: '100%' }} />
+            </Box>
             
-            {doctorsLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Grid container spacing={2}>
-                {(specialization ? doctorsBySpecialization[specialization] || [] : doctors).map((doctor) => (
-                  <Grid item xs={12} sm={6} md={4} key={doctor.id}>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        borderRadius: 2,
-                        cursor: 'pointer',
-                        border: selectedDoctor?.id === doctor.id ? '2px solid #1976d2' : '1px solid #e0e0e0',
-                        '&:hover': {
-                          boxShadow: 3,
-                        },
-                      }}
-                      onClick={() => handleDoctorSelect(doctor)}
-                    >
-                      <Typography variant="h6">Dr. {doctor.firstName} {doctor.lastName}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {doctor.specialization}
-                      </Typography>
-                      <Typography variant="body2">
-                        {doctor.yearsOfExperience} years experience
-                      </Typography>
-                    </Paper>
-                  </Grid>
-                ))}
-              </Grid>
-            )}
+            <Box
+              sx={{
+                width: 30,
+                height: 30,
+                borderRadius: '50%',
+                backgroundColor: step >= 2 ? 'primary.main' : 'action.disabled',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mr: 1,
+              }}
+            >
+              2
+            </Box>
+            <Typography
+              variant="body1"
+              sx={{
+                fontWeight: step === 2 ? 'bold' : 'normal',
+                color: step === 2 ? 'text.primary' : 'text.secondary',
+              }}
+            >
+              Select Date & Time
+            </Typography>
             
-            {validationErrors.doctor && (
-              <FormHelperText error>{validationErrors.doctor}</FormHelperText>
-            )}
+            <Box sx={{ flex: 1, mx: 2, display: 'flex', alignItems: 'center' }}>
+              <Divider sx={{ width: '100%' }} />
+            </Box>
+            
+            <Box
+              sx={{
+                width: 30,
+                height: 30,
+                borderRadius: '50%',
+                backgroundColor: step >= 3 ? 'primary.main' : 'action.disabled',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mr: 1,
+              }}
+            >
+              3
+            </Box>
+            <Typography
+              variant="body1"
+              sx={{
+                fontWeight: step === 3 ? 'bold' : 'normal',
+                color: step === 3 ? 'text.primary' : 'text.secondary',
+              }}
+            >
+              Confirm Details
+            </Typography>
           </Box>
-        );
-      case 1:
-        return (
+        </Box>
+        
+        {/* Step 1: Select Doctor */}
+        {step === 1 && (
           <Box>
-            <Typography variant="h6" gutterBottom>
-              Choose Date & Time
-            </Typography>
-            
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <DatePicker
-                label="Appointment Date"
-                value={selectedDate}
-                onChange={(date) => setSelectedDate(date)}
-                disablePast
-                sx={{ width: '100%', mb: 3 }}
-              />
-            </LocalizationProvider>
-            
-            {validationErrors.date && (
-              <FormHelperText error sx={{ mt: -2, mb: 2 }}>{validationErrors.date}</FormHelperText>
-            )}
-            
-            <Typography variant="subtitle1" gutterBottom>
-              Available Time Slots
-            </Typography>
-            
-            {appointmentsLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <>
-                {availableTimeSlots.length > 0 ? (
-                  <TimeSlotSelector
-                    timeSlots={availableTimeSlots}
-                    selectedTimeSlot={selectedTimeSlot}
-                    onSelectTimeSlot={handleTimeSlotSelect}
-                  />
-                ) : (
-                  <Alert severity="info">
-                    No available time slots for this doctor on the selected date.
-                  </Alert>
-                )}
-              </>
-            )}
-            
-            {validationErrors.timeSlot && (
-              <FormHelperText error>{validationErrors.timeSlot}</FormHelperText>
-            )}
-          </Box>
-        );
-      case 2:
-        return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Appointment Details
-            </Typography>
-            
-            <FormControl fullWidth sx={{ mb: 3 }}>
-              <InputLabel>Appointment Type</InputLabel>
-              <Select
-                value={appointmentType}
-                onChange={(e) => setAppointmentType(e.target.value)}
-                label="Appointment Type"
-                error={!!validationErrors.type}
-              >
-                <MenuItem value="regular">Regular Check-up</MenuItem>
-                <MenuItem value="follow-up">Follow-up</MenuItem>
-                <MenuItem value="emergency">Emergency</MenuItem>
-                <MenuItem value="consultation">Consultation</MenuItem>
-              </Select>
-              {validationErrors.type && (
-                <FormHelperText error>{validationErrors.type}</FormHelperText>
-              )}
-            </FormControl>
-            
-            <TextField
-              label="Reason for Visit"
-              fullWidth
-              multiline
-              rows={2}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              sx={{ mb: 3 }}
-              error={!!validationErrors.reason}
-              helperText={validationErrors.reason}
-            />
-            
-            <TextField
-              label="Additional Notes (optional)"
-              fullWidth
-              multiline
-              rows={3}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </Box>
-        );
-      case 3:
-        return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Confirm Your Appointment
-            </Typography>
-            
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2">Doctor</Typography>
-                <Typography variant="body1" gutterBottom>
-                  Dr. {selectedDoctor?.firstName} {selectedDoctor?.lastName}
-                </Typography>
-                
-                <Typography variant="subtitle2">Specialization</Typography>
-                <Typography variant="body1" gutterBottom>
-                  {selectedDoctor?.specialization}
-                </Typography>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth error={!!errors.specialization}>
+                  <InputLabel id="specialization-label">Specialization</InputLabel>
+                  <Select
+                    labelId="specialization-label"
+                    id="specialization"
+                    value={specialization}
+                    label="Specialization"
+                    onChange={(e) => setSpecialization(e.target.value)}
+                  >
+                    {specializations.map((spec) => (
+                      <MenuItem key={spec} value={spec}>
+                        {spec}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {errors.specialization && (
+                    <FormHelperText>{errors.specialization}</FormHelperText>
+                  )}
+                </FormControl>
               </Grid>
               
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2">Date</Typography>
-                <Typography variant="body1" gutterBottom>
-                  {selectedDate ? format(selectedDate, 'MMMM dd, yyyy') : ''}
-                </Typography>
-                
-                <Typography variant="subtitle2">Time</Typography>
-                <Typography variant="body1" gutterBottom>
-                  {selectedTimeSlot ? format(new Date(`2000-01-01T${selectedTimeSlot.time}`), 'h:mm a') : ''} - {
-                    selectedTimeSlot ? 
-                      format(new Date(`2000-01-01T${addTimeToSlot(selectedTimeSlot.time, 30)}`), 'h:mm a') : 
-                      ''
-                  }
-                </Typography>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth error={!!errors.doctorId}>
+                  <InputLabel id="doctor-label">Doctor</InputLabel>
+                  <Select
+                    labelId="doctor-label"
+                    id="doctor"
+                    value={doctorId}
+                    label="Doctor"
+                    onChange={(e) => setDoctorId(e.target.value as number)}
+                    disabled={!specialization || isLoading}
+                  >
+                    {isLoading ? (
+                      <MenuItem disabled>Loading doctors...</MenuItem>
+                    ) : filteredDoctors.length === 0 ? (
+                      <MenuItem disabled>No doctors available</MenuItem>
+                    ) : (
+                      filteredDoctors.map((doctor) => (
+                        <MenuItem key={doctor.id} value={doctor.id}>
+                          Dr. {doctor.firstName} {doctor.lastName} ({doctor.yearsOfExperience} yrs exp)
+                        </MenuItem>
+                      ))
+                    )}
+                  </Select>
+                  {errors.doctorId && (
+                    <FormHelperText>{errors.doctorId}</FormHelperText>
+                  )}
+                </FormControl>
+              </Grid>
+            </Grid>
+            
+            {renderSelectedDoctor()}
+            
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+              <Button
+                variant="contained"
+                onClick={handleNext}
+                disabled={!specialization || !doctorId}
+              >
+                Next
+              </Button>
+            </Box>
+          </Box>
+        )}
+        
+        {/* Step 2: Select Date and Time */}
+        {step === 2 && (
+          <Box>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <DatePicker
+                    label="Appointment Date"
+                    value={appointmentDate}
+                    onChange={(newDate) => setAppointmentDate(newDate)}
+                    disablePast
+                    shouldDisableDate={disableWeekends}
+                    minDate={addDays(new Date(), 1)}
+                    maxDate={addDays(new Date(), 30)}
+                    slotProps={{
+                      textField: {
+                        fullWidth: true,
+                        error: !!errors.appointmentDate,
+                        helperText: errors.appointmentDate || 'Select a weekday in the next 30 days',
+                      },
+                    }}
+                  />
+                </LocalizationProvider>
+              </Grid>
+              
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth error={!!errors.appointmentType}>
+                  <InputLabel id="type-label">Appointment Type</InputLabel>
+                  <Select
+                    labelId="type-label"
+                    id="type"
+                    value={appointmentType}
+                    label="Appointment Type"
+                    onChange={(e) => setAppointmentType(e.target.value)}
+                  >
+                    {appointmentTypes.map((type) => (
+                      <MenuItem key={type.value} value={type.value}>
+                        {type.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {errors.appointmentType && (
+                    <FormHelperText>{errors.appointmentType}</FormHelperText>
+                  )}
+                </FormControl>
               </Grid>
               
               <Grid item xs={12}>
-                <Typography variant="subtitle2">Appointment Type</Typography>
-                <Typography variant="body1" gutterBottom sx={{ textTransform: 'capitalize' }}>
-                  {appointmentType}
+                <Typography variant="subtitle1" gutterBottom>
+                  Available Time Slots
                 </Typography>
                 
-                <Typography variant="subtitle2">Reason for Visit</Typography>
-                <Typography variant="body1" gutterBottom>
-                  {reason}
-                </Typography>
+                {loadingTimeSlots ? (
+                  <Box display="flex" justifyContent="center" p={3}>
+                    <CircularProgress />
+                  </Box>
+                ) : !appointmentDate ? (
+                  <Alert severity="info">
+                    Please select a date to see available time slots
+                  </Alert>
+                ) : availableTimeSlots.length === 0 ? (
+                  <Alert severity="warning">
+                    No available time slots for the selected date. Please try another day.
+                  </Alert>
+                ) : (
+                  <TimeSlotSelector
+                    timeSlots={availableTimeSlots}
+                    selectedTimeSlot={selectedTimeSlot}
+                    onSelectTimeSlot={setSelectedTimeSlot}
+                  />
+                )}
                 
-                {notes && (
-                  <>
-                    <Typography variant="subtitle2">Additional Notes</Typography>
-                    <Typography variant="body1" gutterBottom>
-                      {notes}
-                    </Typography>
-                  </>
+                {errors.timeSlot && (
+                  <FormHelperText error>{errors.timeSlot}</FormHelperText>
                 )}
               </Grid>
             </Grid>
+            
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
+              <Button onClick={handleBack}>
+                Back
+              </Button>
+              <Button
+                variant="contained"
+                onClick={handleNext}
+                disabled={!appointmentDate || !appointmentType || !selectedTimeSlot}
+              >
+                Next
+              </Button>
+            </Box>
           </Box>
-        );
-      default:
-        return 'Unknown step';
-    }
-  };
-  
-  return (
-    <Box sx={{ p: 3 }}>
-      <Paper sx={{ p: 3, maxWidth: 800, margin: '0 auto' }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Book an Appointment
-        </Typography>
+        )}
         
-        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-          {steps.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
-        
-        <Box sx={{ mb: 4 }}>
-          {getStepContent(activeStep)}
-        </Box>
-        
-        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button
-            disabled={activeStep === 0}
-            onClick={handleBack}
-          >
-            Back
-          </Button>
-          
+        {/* Step 3: Confirm Details */}
+        {step === 3 && (
           <Box>
-            {activeStep === steps.length - 1 ? (
+            <Typography variant="subtitle1" gutterBottom>
+              Appointment Details
+            </Typography>
+            
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+              <Grid item xs={12} md={6}>
+                <Typography variant="body2" color="text.secondary">
+                  Doctor
+                </Typography>
+                <Typography variant="body1">
+                  {doctors.find(d => d.id === doctorId)?.firstName} {doctors.find(d => d.id === doctorId)?.lastName}
+                </Typography>
+              </Grid>
+              
+              <Grid item xs={12} md={6}>
+                <Typography variant="body2" color="text.secondary">
+                  Specialization
+                </Typography>
+                <Typography variant="body1">
+                  {specialization}
+                </Typography>
+              </Grid>
+              
+              <Grid item xs={12} md={6}>
+                <Typography variant="body2" color="text.secondary">
+                  Date
+                </Typography>
+                <Typography variant="body1">
+                  {appointmentDate ? format(appointmentDate, 'EEEE, MMMM d, yyyy') : ''}
+                </Typography>
+              </Grid>
+              
+              <Grid item xs={12} md={6}>
+                <Typography variant="body2" color="text.secondary">
+                  Time
+                </Typography>
+                <Typography variant="body1">
+                  {selectedTimeSlot ? `${format(new Date(`2000-01-01T${selectedTimeSlot.startTime}`), 'h:mm a')} - 
+                    ${format(new Date(`2000-01-01T${selectedTimeSlot.endTime}`), 'h:mm a')}` : 
+                    ''}
+                </Typography>
+              </Grid>
+              
+              <Grid item xs={12} md={6}>
+                <Typography variant="body2" color="text.secondary">
+                  Type
+                </Typography>
+                <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
+                  {appointmentType.replace('-', ' ')}
+                </Typography>
+              </Grid>
+            </Grid>
+            
+            <TextField
+              id="reason"
+              label="Reason for Visit (Optional)"
+              multiline
+              rows={4}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              fullWidth
+              sx={{ mb: 3 }}
+              placeholder="Please briefly describe your symptoms or reason for the appointment..."
+            />
+            
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
+              <Button onClick={handleBack}>
+                Back
+              </Button>
               <Button
                 variant="contained"
                 color="primary"
                 onClick={handleSubmit}
-                disabled={doctorsLoading || appointmentsLoading}
               >
-                {doctorsLoading || appointmentsLoading ? (
-                  <>
-                    <CircularProgress size={24} color="inherit" sx={{ mr: 1 }} />
-                    Processing
-                  </>
-                ) : (
-                  'Book Appointment'
-                )}
+                Book Appointment
               </Button>
-            ) : (
-              <Button
-                variant="contained"
-                onClick={handleNext}
-              >
-                Next
-              </Button>
-            )}
+            </Box>
           </Box>
-        </Box>
+        )}
       </Paper>
       
       <Snackbar
-        open={notification !== null}
+        open={notification.open}
         autoHideDuration={6000}
         onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        {notification && (
-          <Alert 
-            onClose={handleCloseNotification} 
-            severity={notification.type} 
-            sx={{ width: '100%' }}
-          >
-            {notification.message}
-          </Alert>
-        )}
+        <Alert 
+          onClose={handleCloseNotification} 
+          severity={notification.severity}
+          sx={{ width: '100%' }}
+        >
+          {notification.message}
+        </Alert>
       </Snackbar>
     </Box>
   );

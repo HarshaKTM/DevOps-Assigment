@@ -127,7 +127,7 @@ describe('Appointment Service', () => {
         const newAppointment = {
           id: 999,
           ...appointmentData,
-          status: 'scheduled',
+          status: 'scheduled' as const,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };

@@ -1,231 +1,195 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { RootState } from '../index';
-import { Doctor } from '../../services/doctorService';
+import { api } from '../../services/api';
 
-// Create a mock service for development since we don't have the actual service
-const mockDoctorApi = {
-  getAllDoctors: async () => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return [
-      {
-        id: 1,
-        firstName: 'Sarah',
-        lastName: 'Johnson',
-        email: 'sarah.johnson@example.com',
-        specialization: 'Cardiology',
-        yearsOfExperience: 12,
-        about: 'Dr. Sarah Johnson is a board-certified cardiologist with over 12 years of experience.',
-        education: 'MD from Harvard Medical School',
-        avatar: 'https://i.pravatar.cc/150?u=doctor1',
-      },
-      {
-        id: 2,
-        firstName: 'Michael',
-        lastName: 'Lee',
-        email: 'michael.lee@example.com',
-        specialization: 'Neurology',
-        yearsOfExperience: 15,
-        about: 'Dr. Michael Lee is a renowned neurologist specializing in treating complex neurological disorders.',
-        education: 'MD from Johns Hopkins University',
-        avatar: 'https://i.pravatar.cc/150?u=doctor2',
-      },
-      {
-        id: 3,
-        firstName: 'Anna',
-        lastName: 'Garcia',
-        email: 'anna.garcia@example.com',
-        specialization: 'Pediatrics',
-        yearsOfExperience: 8,
-        about: 'Dr. Anna Garcia is a caring pediatrician dedicated to children's health and wellbeing.',
-        education: 'MD from University of California',
-        avatar: 'https://i.pravatar.cc/150?u=doctor3',
-      },
-      {
-        id: 4,
-        firstName: 'James',
-        lastName: 'Wilson',
-        email: 'james.wilson@example.com',
-        specialization: 'Dermatology',
-        yearsOfExperience: 10,
-        about: 'Dr. James Wilson is a dermatologist focused on skin health and cosmetic procedures.',
-        education: 'MD from Yale University',
-        avatar: 'https://i.pravatar.cc/150?u=doctor4',
-      },
-      {
-        id: 5,
-        firstName: 'Emily',
-        lastName: 'Chen',
-        email: 'emily.chen@example.com',
-        specialization: 'Psychiatry',
-        yearsOfExperience: 11,
-        about: 'Dr. Emily Chen is a psychiatrist who combines medication management with therapy approaches.',
-        education: 'MD from Stanford University',
-        avatar: 'https://i.pravatar.cc/150?u=doctor5',
-      },
-      {
-        id: 6,
-        firstName: 'David',
-        lastName: 'Rodriguez',
-        email: 'david.rodriguez@example.com',
-        specialization: 'Orthopedics',
-        yearsOfExperience: 14,
-        about: 'Dr. David Rodriguez is an orthopedic surgeon specializing in sports medicine and joint replacements.',
-        education: 'MD from Columbia University',
-        avatar: 'https://i.pravatar.cc/150?u=doctor6',
-      },
-      {
-        id: 7,
-        firstName: 'Lisa',
-        lastName: 'Taylor',
-        email: 'lisa.taylor@example.com',
-        specialization: 'General Medicine',
-        yearsOfExperience: 9,
-        about: 'Dr. Lisa Taylor is a family physician committed to providing comprehensive primary care.',
-        education: 'MD from University of Pennsylvania',
-        avatar: 'https://i.pravatar.cc/150?u=doctor7',
-      },
-    ];
-  },
-  getDoctorById: async (doctorId: number) => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const doctors = await mockDoctorApi.getAllDoctors();
-    return doctors.find(doctor => doctor.id === doctorId) || null;
-  },
-  getDoctorsBySpecialization: async (specialization: string) => {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    const doctors = await mockDoctorApi.getAllDoctors();
-    return doctors.filter(doctor => doctor.specialization === specialization);
-  }
-};
+export interface Doctor {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  specialization: string;
+  qualifications: string[];
+  yearsOfExperience: number;
+  about: string;
+  education: { degree: string; institution: string; year: number; }[];
+  avatar?: string;
+  isActive?: boolean;
+  bio?: string;
+  availability?: { [key: string]: string[] };
+}
 
-// Interface for the doctor state
 interface DoctorState {
   doctors: Doctor[];
   selectedDoctor: Doctor | null;
-  doctorsBySpecialization: {
-    [key: string]: Doctor[];
-  };
   loading: boolean;
   error: string | null;
+  doctorsBySpecialization: Record<string, Doctor[]>;
 }
 
-// Initial state
 const initialState: DoctorState = {
   doctors: [],
   selectedDoctor: null,
-  doctorsBySpecialization: {},
   loading: false,
   error: null,
+  doctorsBySpecialization: {},
 };
 
-// Async thunks
-export const fetchAllDoctors = createAsyncThunk(
-  'doctor/fetchAll',
-  async (_, { rejectWithValue }) => {
-    try {
-      const doctors = await mockDoctorApi.getAllDoctors();
-      return doctors;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to fetch doctors');
-    }
+export const fetchDoctors = createAsyncThunk(
+  'doctor/fetchDoctors',
+  async () => {
+    const response = await api.get('/doctors');
+    return response.data;
   }
 );
 
 export const fetchDoctorById = createAsyncThunk(
-  'doctor/fetchById',
-  async (doctorId: number, { rejectWithValue }) => {
-    try {
-      const doctor = await mockDoctorApi.getDoctorById(doctorId);
-      if (!doctor) {
-        return rejectWithValue('Doctor not found');
-      }
-      return doctor;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to fetch doctor');
-    }
+  'doctor/fetchDoctorById',
+  async (id: number) => {
+    const response = await api.get(`/doctors/${id}`);
+    return response.data;
   }
 );
 
 export const fetchDoctorsBySpecialization = createAsyncThunk(
-  'doctor/fetchBySpecialization',
-  async (specialization: string, { rejectWithValue }) => {
-    try {
-      const doctors = await mockDoctorApi.getDoctorsBySpecialization(specialization);
-      return { specialization, doctors };
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to fetch doctors by specialization');
-    }
+  'doctor/fetchDoctorsBySpecialization',
+  async (specialization: string) => {
+    const response = await api.get(`/doctors/specialization/${specialization}`);
+    return response.data;
   }
 );
 
-// Doctor slice
+export const createDoctor = createAsyncThunk(
+  'doctor/createDoctor',
+  async (doctorData: Omit<Doctor, 'id'>) => {
+    const response = await api.post('/doctors', doctorData);
+    return response.data;
+  }
+);
+
+export const updateDoctor = createAsyncThunk(
+  'doctor/updateDoctor',
+  async ({ id, ...doctorData }: Doctor) => {
+    const response = await api.put(`/doctors/${id}`, doctorData);
+    return response.data;
+  }
+);
+
+export const deleteDoctor = createAsyncThunk(
+  'doctor/deleteDoctor',
+  async (id: number) => {
+    await api.delete(`/doctors/${id}`);
+    return id;
+  }
+);
+
 const doctorSlice = createSlice({
   name: 'doctor',
   initialState,
   reducers: {
-    clearSelectedDoctor: (state) => {
-      state.selectedDoctor = null;
-    },
     clearDoctorError: (state) => {
       state.error = null;
+    },
+    clearSelectedDoctor: (state) => {
+      state.selectedDoctor = null;
     },
   },
   extraReducers: (builder) => {
     builder
-      // Fetch all doctors
-      .addCase(fetchAllDoctors.pending, (state) => {
+      // Fetch Doctors
+      .addCase(fetchDoctors.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchAllDoctors.fulfilled, (state, action: PayloadAction<Doctor[]>) => {
+      .addCase(fetchDoctors.fulfilled, (state, action: PayloadAction<Doctor[]>) => {
+        state.loading = false;
         state.doctors = action.payload;
-        state.loading = false;
       })
-      .addCase(fetchAllDoctors.rejected, (state, action) => {
+      .addCase(fetchDoctors.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        state.error = action.error.message || 'Failed to fetch doctors';
       })
-      
-      // Fetch doctor by ID
+      // Fetch Doctor by ID
       .addCase(fetchDoctorById.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchDoctorById.fulfilled, (state, action: PayloadAction<Doctor>) => {
-        state.selectedDoctor = action.payload;
         state.loading = false;
+        state.selectedDoctor = action.payload;
       })
       .addCase(fetchDoctorById.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        state.error = action.error.message || 'Failed to fetch doctor';
       })
-      
-      // Fetch doctors by specialization
+      // Fetch Doctors by Specialization
       .addCase(fetchDoctorsBySpecialization.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchDoctorsBySpecialization.fulfilled, (state, action: PayloadAction<{
-        specialization: string;
-        doctors: Doctor[];
-      }>) => {
-        const { specialization, doctors } = action.payload;
-        state.doctorsBySpecialization[specialization] = doctors;
+      .addCase(fetchDoctorsBySpecialization.fulfilled, (state, action: PayloadAction<Doctor[], string, { arg: string }>) => {
         state.loading = false;
+        state.doctorsBySpecialization[action.meta.arg] = action.payload;
       })
       .addCase(fetchDoctorsBySpecialization.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        state.error = action.error.message || 'Failed to fetch doctors by specialization';
+      })
+      // Create Doctor
+      .addCase(createDoctor.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createDoctor.fulfilled, (state, action: PayloadAction<Doctor>) => {
+        state.loading = false;
+        state.doctors.push(action.payload);
+      })
+      .addCase(createDoctor.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to create doctor';
+      })
+      // Update Doctor
+      .addCase(updateDoctor.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateDoctor.fulfilled, (state, action: PayloadAction<Doctor>) => {
+        state.loading = false;
+        const index = state.doctors.findIndex((d) => d.id === action.payload.id);
+        if (index !== -1) {
+          state.doctors[index] = action.payload;
+        }
+        if (state.selectedDoctor?.id === action.payload.id) {
+          state.selectedDoctor = action.payload;
+        }
+      })
+      .addCase(updateDoctor.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to update doctor';
+      })
+      // Delete Doctor
+      .addCase(deleteDoctor.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteDoctor.fulfilled, (state, action: PayloadAction<number>) => {
+        state.loading = false;
+        state.doctors = state.doctors.filter((d) => d.id !== action.payload);
+        if (state.selectedDoctor?.id === action.payload) {
+          state.selectedDoctor = null;
+        }
+      })
+      .addCase(deleteDoctor.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to delete doctor';
       });
   },
 });
 
-export const { clearSelectedDoctor, clearDoctorError } = doctorSlice.actions;
+export const { clearDoctorError, clearSelectedDoctor } = doctorSlice.actions;
 
-export const selectAllDoctors = (state: RootState) => state.doctor.doctors;
-export const selectSelectedDoctor = (state: RootState) => state.doctor.selectedDoctor;
-export const selectDoctorsBySpecialization = (state: RootState) => state.doctor.doctorsBySpecialization;
-export const selectDoctorLoading = (state: RootState) => state.doctor.loading;
-export const selectDoctorError = (state: RootState) => state.doctor.error;
+export const selectDoctors = (state: { doctor: DoctorState }) => state.doctor.doctors;
+export const selectSelectedDoctor = (state: { doctor: DoctorState }) => state.doctor.selectedDoctor;
+export const selectDoctorsBySpecialization = (state: { doctor: DoctorState }) => state.doctor.doctorsBySpecialization;
+export const selectLoading = (state: { doctor: DoctorState }) => state.doctor.loading;
+export const selectError = (state: { doctor: DoctorState }) => state.doctor.error;
 
 export default doctorSlice.reducer; 

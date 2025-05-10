@@ -1,111 +1,126 @@
-import { Appointment } from '../../services/appointmentService';
+import { Appointment } from '../../store/slices/appointmentSlice';
+import { addDays, format } from 'date-fns';
 
-// Generate dates
-const today = new Date();
-const tomorrow = new Date(today);
-tomorrow.setDate(tomorrow.getDate() + 1);
-const nextWeek = new Date(today);
-nextWeek.setDate(nextWeek.getDate() + 7);
-const lastWeek = new Date(today);
-lastWeek.setDate(lastWeek.getDate() - 7);
-const lastMonth = new Date(today);
-lastMonth.setDate(lastMonth.getDate() - 30);
+// Generate dates for the next 7 days
+const todayDate = new Date();
+const appointmentDates = Array(7)
+  .fill(null)
+  .map((_, index) => format(addDays(todayDate, index), 'yyyy-MM-dd'));
 
+// Mock appointments data
 export const mockAppointments: Appointment[] = [
-  // Upcoming appointments
   {
     id: 1,
-    patientId: 101,
-    doctorId: 1,
-    date: tomorrow.toISOString().split('T')[0],
+    patientId: 1,
+    doctorId: 3,
+    date: appointmentDates[0],
     startTime: '09:00',
     endTime: '09:30',
+    type: 'consultation',
     status: 'scheduled',
-    type: 'regular',
-    reason: 'Annual physical examination',
-    createdAt: today.toISOString(),
-    updatedAt: today.toISOString()
+    reason: 'Annual checkup to monitor heart condition',
+    notes: 'Patient reports feeling well. No significant changes since last visit.',
+    createdAt: '2023-04-01T12:00:00Z',
+    updatedAt: '2023-04-01T12:00:00Z'
   },
   {
     id: 2,
-    patientId: 101,
-    doctorId: 2,
-    date: nextWeek.toISOString().split('T')[0],
+    patientId: 2,
+    doctorId: 1,
+    date: appointmentDates[1],
     startTime: '14:00',
     endTime: '14:30',
-    status: 'scheduled',
     type: 'follow-up',
-    reason: 'Follow-up on blood test results',
-    createdAt: today.toISOString(),
-    updatedAt: today.toISOString()
+    status: 'scheduled',
+    reason: 'Follow-up on recent lab results and medication adjustment',
+    notes: '',
+    createdAt: '2023-04-02T10:00:00Z',
+    updatedAt: '2023-04-02T10:00:00Z'
   },
   {
     id: 3,
-    patientId: 101,
-    doctorId: 3,
-    date: nextWeek.toISOString().split('T')[0],
+    patientId: 3,
+    doctorId: 2,
+    date: appointmentDates[2],
     startTime: '11:00',
     endTime: '11:30',
-    status: 'scheduled',
-    type: 'consultation',
-    reason: 'Skin rash consultation',
-    createdAt: today.toISOString(),
-    updatedAt: today.toISOString()
+    type: 'emergency',
+    status: 'completed',
+    reason: 'Severe pain in lower abdomen, suspected appendicitis',
+    notes: 'Referred to emergency department for immediate assessment.',
+    createdAt: '2023-04-03T08:00:00Z',
+    updatedAt: '2023-04-03T09:30:00Z'
   },
-  
-  // Past appointments
   {
-    id: 101,
-    patientId: 101,
-    doctorId: 1,
-    date: lastWeek.toISOString().split('T')[0],
+    id: 4,
+    patientId: 1,
+    doctorId: 4,
+    date: appointmentDates[3],
     startTime: '10:00',
     endTime: '10:30',
-    status: 'completed',
-    type: 'regular',
-    reason: 'Flu symptoms',
-    notes: 'Patient prescribed antibiotics and advised to rest',
-    createdAt: lastMonth.toISOString(),
-    updatedAt: lastWeek.toISOString()
+    type: 'consultation',
+    status: 'cancelled',
+    reason: 'Skin rash and itching on arms',
+    notes: 'Patient cancelled due to scheduling conflict.',
+    createdAt: '2023-04-04T14:00:00Z',
+    updatedAt: '2023-04-05T09:00:00Z'
   },
   {
-    id: 102,
-    patientId: 101,
-    doctorId: 4,
-    date: lastMonth.toISOString().split('T')[0],
-    startTime: '13:00',
-    endTime: '13:30',
-    status: 'completed',
-    type: 'regular',
-    reason: 'Headache and dizziness',
-    notes: 'Referred to neurologist for further testing',
-    createdAt: lastMonth.toISOString(),
-    updatedAt: lastMonth.toISOString()
-  },
-  {
-    id: 103,
-    patientId: 101,
-    doctorId: 2,
-    date: lastMonth.toISOString().split('T')[0],
+    id: 5,
+    patientId: 2,
+    doctorId: 5,
+    date: appointmentDates[4],
     startTime: '15:00',
     endTime: '15:30',
-    status: 'cancelled',
     type: 'follow-up',
-    reason: 'Follow-up on medication',
-    createdAt: lastMonth.toISOString(),
-    updatedAt: lastMonth.toISOString()
+    status: 'scheduled',
+    reason: 'Review of physical therapy progress',
+    notes: '',
+    createdAt: '2023-04-05T11:00:00Z',
+    updatedAt: '2023-04-05T11:00:00Z'
   },
   {
-    id: 104,
-    patientId: 101,
-    doctorId: 5,
-    date: lastWeek.toISOString().split('T')[0],
+    id: 6,
+    patientId: 4,
+    doctorId: 2,
+    date: appointmentDates[0],
+    startTime: '13:30',
+    endTime: '14:00',
+    type: 'consultation',
+    status: 'scheduled',
+    reason: 'Persistent headaches and dizziness',
+    notes: 'Patient to bring previous imaging results.',
+    createdAt: '2023-04-06T10:00:00Z',
+    updatedAt: '2023-04-06T10:00:00Z'
+  },
+  {
+    id: 7,
+    patientId: 3,
+    doctorId: 1,
+    date: appointmentDates[5],
     startTime: '09:30',
     endTime: '10:00',
-    status: 'no-show',
-    type: 'regular',
-    reason: 'Yearly check-up',
-    createdAt: lastMonth.toISOString(),
-    updatedAt: lastWeek.toISOString()
+    type: 'follow-up',
+    status: 'scheduled',
+    reason: 'Blood pressure monitoring and medication review',
+    notes: '',
+    createdAt: '2023-04-07T09:00:00Z',
+    updatedAt: '2023-04-07T09:00:00Z'
+  },
+  {
+    id: 8,
+    patientId: 5,
+    doctorId: 3,
+    date: appointmentDates[1],
+    startTime: '16:00',
+    endTime: '16:30',
+    type: 'consultation',
+    status: 'scheduled',
+    reason: 'New patient consultation for heart palpitations',
+    notes: 'Patient has family history of heart disease.',
+    createdAt: '2023-04-08T14:00:00Z',
+    updatedAt: '2023-04-08T14:00:00Z'
   }
-]; 
+];
+
+export default mockAppointments; 

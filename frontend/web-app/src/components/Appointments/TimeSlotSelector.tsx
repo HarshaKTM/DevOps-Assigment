@@ -1,7 +1,7 @@
 import React from 'react';
-import { Grid, Button, Typography, Box } from '@mui/material';
-import { format } from 'date-fns';
+import { Grid, Button, Typography, Paper } from '@mui/material';
 import { TimeSlot } from '../../services/appointmentService';
+import { format } from 'date-fns';
 
 interface TimeSlotSelectorProps {
   timeSlots: TimeSlot[];
@@ -14,62 +14,131 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
   selectedTimeSlot,
   onSelectTimeSlot,
 }) => {
-  // Group time slots into morning, afternoon, and evening
-  const morningSlots = timeSlots.filter(slot => {
-    const hour = parseInt(slot.time.split(':')[0], 10);
+  // Helper function to format the time (e.g., "09:00" to "9:00 AM")
+  const formatTime = (time: string) => {
+    const hour = parseInt(time.split(':')[0], 10);
+    const minutes = time.split(':')[1];
+    return `${hour % 12 || 12}:${minutes} ${hour >= 12 ? 'PM' : 'AM'}`;
+  };
+
+  // Sort time slots by time
+  const sortedTimeSlots = [...timeSlots].sort((a, b) => {
+    const hourA = parseInt(a.startTime.split(':')[0], 10);
+    const minutesA = parseInt(a.startTime.split(':')[1], 10);
+    const hourB = parseInt(b.startTime.split(':')[0], 10);
+    const minutesB = parseInt(b.startTime.split(':')[1], 10);
+    return hourA * 60 + minutesA - (hourB * 60 + minutesB);
+  });
+
+  // Group time slots by morning, afternoon, and evening
+  const morningSlots = sortedTimeSlots.filter((slot) => {
+    const hour = parseInt(slot.startTime.split(':')[0], 10);
     return hour >= 8 && hour < 12;
   });
-  
-  const afternoonSlots = timeSlots.filter(slot => {
-    const hour = parseInt(slot.time.split(':')[0], 10);
+
+  const afternoonSlots = sortedTimeSlots.filter((slot) => {
+    const hour = parseInt(slot.startTime.split(':')[0], 10);
     return hour >= 12 && hour < 17;
   });
-  
-  const eveningSlots = timeSlots.filter(slot => {
-    const hour = parseInt(slot.time.split(':')[0], 10);
+
+  const eveningSlots = sortedTimeSlots.filter((slot) => {
+    const hour = parseInt(slot.startTime.split(':')[0], 10);
     return hour >= 17 && hour <= 20;
   });
-  
-  const formatTime = (timeString: string) => {
-    return format(new Date(`2000-01-01T${timeString}`), 'h:mm a');
-  };
-  
-  const renderTimeSlots = (slots: TimeSlot[], title: string) => {
-    if (slots.length === 0) return null;
-    
-    return (
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="subtitle2" sx={{ mb: 1 }}>
-          {title}
-        </Typography>
-        <Grid container spacing={1}>
-          {slots.map((slot) => (
-            <Grid item key={slot.time}>
-              <Button
-                variant={selectedTimeSlot?.time === slot.time ? 'contained' : 'outlined'}
-                color={selectedTimeSlot?.time === slot.time ? 'primary' : 'inherit'}
-                onClick={() => onSelectTimeSlot(slot)}
-                disabled={!slot.isAvailable}
-                sx={{ 
-                  minWidth: '80px',
-                  opacity: slot.isAvailable ? 1 : 0.5 
-                }}
-              >
-                {formatTime(slot.time)}
-              </Button>
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-    );
-  };
-  
+
   return (
-    <Box>
-      {renderTimeSlots(morningSlots, 'Morning')}
-      {renderTimeSlots(afternoonSlots, 'Afternoon')}
-      {renderTimeSlots(eveningSlots, 'Evening')}
-    </Box>
+    <Paper elevation={0} sx={{ p: 3, mt: 2 }}>
+      <Typography variant="h6" gutterBottom>
+        Select a Time
+      </Typography>
+
+      {morningSlots.length > 0 && (
+        <>
+          <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>
+            Morning
+          </Typography>
+          <Grid container spacing={1}>
+            {morningSlots.map((slot) => (
+              <Grid item key={slot.startTime}>
+                <Button
+                  variant={selectedTimeSlot?.startTime === slot.startTime ? 'contained' : 'outlined'}
+                  color={selectedTimeSlot?.startTime === slot.startTime ? 'primary' : 'inherit'}
+                  disabled={!slot.available}
+                  size="small"
+                  onClick={() => onSelectTimeSlot(slot)}
+                  sx={{ 
+                    minWidth: '80px',
+                    opacity: slot.available ? 1 : 0.5
+                  }}
+                >
+                  {formatTime(slot.startTime)}
+                </Button>
+              </Grid>
+            ))}
+          </Grid>
+        </>
+      )}
+
+      {afternoonSlots.length > 0 && (
+        <>
+          <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>
+            Afternoon
+          </Typography>
+          <Grid container spacing={1}>
+            {afternoonSlots.map((slot) => (
+              <Grid item key={slot.startTime}>
+                <Button
+                  variant={selectedTimeSlot?.startTime === slot.startTime ? 'contained' : 'outlined'}
+                  color={selectedTimeSlot?.startTime === slot.startTime ? 'primary' : 'inherit'}
+                  disabled={!slot.available}
+                  size="small"
+                  onClick={() => onSelectTimeSlot(slot)}
+                  sx={{ 
+                    minWidth: '80px',
+                    opacity: slot.available ? 1 : 0.5
+                  }}
+                >
+                  {formatTime(slot.startTime)}
+                </Button>
+              </Grid>
+            ))}
+          </Grid>
+        </>
+      )}
+
+      {eveningSlots.length > 0 && (
+        <>
+          <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>
+            Evening
+          </Typography>
+          <Grid container spacing={1}>
+            {eveningSlots.map((slot) => (
+              <Grid item key={slot.startTime}>
+                <Button
+                  variant={selectedTimeSlot?.startTime === slot.startTime ? 'contained' : 'outlined'}
+                  color={selectedTimeSlot?.startTime === slot.startTime ? 'primary' : 'inherit'}
+                  disabled={!slot.available}
+                  size="small"
+                  onClick={() => onSelectTimeSlot(slot)}
+                  sx={{ 
+                    minWidth: '80px',
+                    opacity: slot.available ? 1 : 0.5
+                  }}
+                >
+                  {formatTime(slot.startTime)}
+                </Button>
+              </Grid>
+            ))}
+          </Grid>
+        </>
+      )}
+
+      {selectedTimeSlot && (
+        <Typography variant="body1" sx={{ mt: 2, fontWeight: 'bold' }}>
+          Selected time: {formatTime(selectedTimeSlot.startTime)} - {formatTime(selectedTimeSlot.endTime)}
+        </Typography>
+      )}
+    </Paper>
   );
 };
 

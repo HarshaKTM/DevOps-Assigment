@@ -292,9 +292,9 @@ const medicalRecordsSlice = createSlice({
 
 export const { clearCurrentRecord, clearMedicalRecordsError } = medicalRecordsSlice.actions;
 
-export const selectAllRecords = (state: RootState) => state.medicalRecords.records;
-export const selectCurrentRecord = (state: RootState) => state.medicalRecords.currentRecord;
-export const selectMedicalRecordsLoading = (state: RootState) => state.medicalRecords.loading;
-export const selectMedicalRecordsError = (state: RootState) => state.medicalRecords.error;
+export const selectAllRecords = (state: RootState) => state.medicalRecord.records;
+export const selectCurrentRecord = (state: RootState) => state.medicalRecord.selectedRecord;
+export const selectMedicalRecordsLoading = (state: RootState) => state.medicalRecord.loading;
+export const selectMedicalRecordsError = (state: RootState) => state.medicalRecord.error;
 
 export default medicalRecordsSlice.reducer; 

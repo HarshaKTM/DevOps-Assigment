@@ -17,11 +17,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import AppointmentList from '../../components/Appointments/AppointmentList';
 import { RootState, AppDispatch } from '../../store';
 import { 
+  fetchAppointments, 
   fetchUpcomingAppointments, 
   fetchPastAppointments, 
   cancelAppointment as cancelAppointmentAction 
 } from '../../store/slices/appointmentSlice';
-import { Appointment } from '../../services/appointmentService';
+import { Appointment } from '../../store/slices/appointmentSlice';
 
 const AppointmentsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -135,10 +136,10 @@ const AppointmentsPage: React.FC = () => {
                 upcomingAppointments.length > 0 ? (
                   <AppointmentList 
                     appointments={upcomingAppointments}
-                    onView={handleViewAppointment}
-                    onEdit={handleEditAppointment}
-                    onCancel={handleCancelAppointment}
-                    isUpcoming={true}
+                    onViewAppointment={handleViewAppointment}
+                    onEditAppointment={handleEditAppointment}
+                    onCancelAppointment={handleCancelAppointment}
+                    showActions={true}
                   />
                 ) : (
                   <Typography variant="body1" sx={{ p: 2, textAlign: 'center' }}>
@@ -151,8 +152,8 @@ const AppointmentsPage: React.FC = () => {
                 pastAppointments.length > 0 ? (
                   <AppointmentList 
                     appointments={pastAppointments}
-                    onView={handleViewAppointment}
-                    isUpcoming={false}
+                    onViewAppointment={handleViewAppointment}
+                    showActions={true}
                   />
                 ) : (
                   <Typography variant="body1" sx={{ p: 2, textAlign: 'center' }}>
@@ -166,11 +167,11 @@ const AppointmentsPage: React.FC = () => {
       </Paper>
       
       <Snackbar
-        open={notification !== null}
+        open={!!notification}
         autoHideDuration={6000}
         onClose={handleCloseNotification}
       >
-        {notification && (
+        {notification ? (
           <Alert 
             onClose={handleCloseNotification} 
             severity={notification.type} 
@@ -178,7 +179,7 @@ const AppointmentsPage: React.FC = () => {
           >
             {notification.message}
           </Alert>
-        )}
+        ) : <span />}
       </Snackbar>
     </Box>
   );

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers';
@@ -24,156 +24,201 @@ import ProfilePage from './pages/Profile/ProfilePage';
 import LoginPage from './pages/Auth/LoginPage';
 import RegisterPage from './pages/Auth/RegisterPage';
 import ForgotPasswordPage from './pages/Auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/Auth/ResetPasswordPage';
 import NotFoundPage from './pages/NotFoundPage';
 import DoctorFormPage from './pages/Doctors/DoctorFormPage';
 import PatientFormPage from './pages/Patients/PatientFormPage';
 
 // Redux
-import { RootState, AppDispatch } from './store';
-import { getCurrentUser } from './store/slices/authSlice';
+import { loadUser, selectIsAuthenticated, selectUser } from './store/slices/authSlice';
 
 // Theme
 import theme from './theme/theme';
+import { AppDispatch } from './store';
+
+// Guard for protected routes
+const RequireAuth = ({ children }: { children: JSX.Element }) => {
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+  
+  return children;
+};
+
+// Guard for role-based routes
+const RequireRole = ({ children, allowedRoles }: { children: JSX.Element, allowedRoles: string[] }) => {
+  const user = useSelector(selectUser);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" />;
+  }
+  
+  if (!allowedRoles.includes(user.role)) {
+    // Redirect based on user role
+    if (user.role === 'patient') {
+      return <Navigate to="/dashboard" />;
+    } else if (user.role === 'doctor') {
+      return <Navigate to="/dashboard" />;
+    } else {
+      return <Navigate to="/login" />;
+    }
+  }
+  
+  return children;
+};
 
 const App: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { isAuthenticated, user, loading } = useSelector((state: RootState) => state.auth);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
   
   useEffect(() => {
-    dispatch(getCurrentUser());
-  }, [dispatch]);
-  
-  // Protected route wrapper
-  const ProtectedRoute: React.FC<{ 
-    element: React.ReactNode; 
-    allowedRoles?: string[] 
-  }> = ({ element, allowedRoles = [] }) => {
-    // Still loading auth state
-    if (loading) {
-      return null;
+    if (isAuthenticated) {
+      dispatch(loadUser());
     }
-    
-    // Not authenticated
-    if (!isAuthenticated) {
-      return <Navigate to="/login" />;
-    }
-    
-    // Role-based access control
-    if (allowedRoles.length > 0 && user && !allowedRoles.includes(user.role)) {
-      // Redirect based on role
-      if (user.role === 'doctor') {
-        return <Navigate to="/appointments" />;
-      } else if (user.role === 'admin') {
-        return <Navigate to="/doctors" />;
-      }
-      return <Navigate to="/dashboard" />;
-    }
-    
-    return <>{element}</>;
-  };
+  }, [dispatch, isAuthenticated]);
   
   return (
     <ThemeProvider theme={theme}>
       <LocalizationProvider dateAdapter={AdapterDateFns}>
         <CssBaseline />
-        <BrowserRouter>
+        <Router>
           <Routes>
             {/* Auth routes */}
             <Route element={<AuthLayout />}>
-              <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/dashboard" />} />
-              <Route path="/register" element={!isAuthenticated ? <RegisterPage /> : <Navigate to="/dashboard" />} />
-              <Route path="/forgot-password" element={!isAuthenticated ? <ForgotPasswordPage /> : <Navigate to="/dashboard" />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
             </Route>
             
             {/* App routes */}
-            <Route element={<MainLayout />}>
+            <Route element={
+              <RequireAuth>
+                <MainLayout />
+              </RequireAuth>
+            }>
               <Route path="/" element={<Navigate to="/dashboard" />} />
               
               {/* Dashboard - accessible by all authenticated users */}
               <Route 
                 path="/dashboard" 
-                element={<ProtectedRoute element={<DashboardPage />} />} 
+                element={<DashboardPage />} 
               />
               
               {/* Appointments - accessible by all but with different views */}
               <Route 
                 path="/appointments" 
-                element={<ProtectedRoute element={<AppointmentsPage />} />} 
+                element={<AppointmentsPage />} 
               />
               
               {/* Patient-only routes */}
               <Route 
-                path="/appointments/new" 
-                element={<ProtectedRoute element={<BookAppointmentPage />} allowedRoles={['patient']} />} 
+                path="/appointments/book" 
+                element={<BookAppointmentPage />} 
               />
               
               <Route 
                 path="/appointments/:id" 
-                element={<ProtectedRoute element={<AppointmentDetailsPage />} />} 
+                element={<AppointmentDetailsPage />} 
               />
               
               {/* Doctors management - Admin only */}
               <Route 
                 path="/doctors" 
-                element={<ProtectedRoute element={<DoctorsPage />} allowedRoles={['admin']} />} 
+                element={<DoctorsPage />} 
               />
               
               <Route 
-                path="/doctors/add" 
-                element={<ProtectedRoute element={<DoctorFormPage />} allowedRoles={['admin']} />} 
+                path="/doctors/new" 
+                element={
+                  <RequireRole allowedRoles={['doctor']}>
+                    <DoctorFormPage />
+                  </RequireRole>
+                } 
               />
               
               <Route 
                 path="/doctors/:id/edit" 
-                element={<ProtectedRoute element={<DoctorFormPage />} allowedRoles={['admin']} />} 
+                element={
+                  <RequireRole allowedRoles={['doctor']}>
+                    <DoctorFormPage />
+                  </RequireRole>
+                } 
               />
               
               <Route 
                 path="/doctors/:id" 
-                element={<ProtectedRoute element={<DoctorDetailsPage />} allowedRoles={['admin', 'doctor']} />} 
+                element={<DoctorDetailsPage />} 
               />
               
               {/* Patients management - Admin and Doctor only */}
               <Route 
                 path="/patients" 
-                element={<ProtectedRoute element={<PatientsPage />} allowedRoles={['admin', 'doctor']} />} 
+                element={
+                  <RequireRole allowedRoles={['doctor']}>
+                    <PatientsPage />
+                  </RequireRole>
+                } 
               />
               
               <Route 
-                path="/patients/add" 
-                element={<ProtectedRoute element={<PatientFormPage />} allowedRoles={['admin']} />} 
+                path="/patients/new" 
+                element={
+                  <RequireRole allowedRoles={['doctor']}>
+                    <PatientFormPage />
+                  </RequireRole>
+                } 
               />
               
               <Route 
                 path="/patients/:id/edit" 
-                element={<ProtectedRoute element={<PatientFormPage />} allowedRoles={['admin']} />} 
+                element={
+                  <RequireRole allowedRoles={['doctor']}>
+                    <PatientFormPage />
+                  </RequireRole>
+                } 
               />
               
               <Route 
                 path="/patients/:id" 
-                element={<ProtectedRoute element={<PatientDetailsPage />} allowedRoles={['admin', 'doctor']} />} 
+                element={
+                  <RequireRole allowedRoles={['doctor']}>
+                    <PatientDetailsPage />
+                  </RequireRole>
+                } 
               />
               
               {/* Medical records - accessed by doctor and patient (but filtered) */}
               <Route 
                 path="/medical-records" 
-                element={<ProtectedRoute element={<MedicalRecordsPage />} />} 
+                element={
+                  <RequireRole allowedRoles={['doctor']}>
+                    <MedicalRecordsPage />
+                  </RequireRole>
+                } 
               />
               
               <Route 
                 path="/medical-records/:id" 
-                element={<ProtectedRoute element={<MedicalRecordDetailsPage />} />} 
+                element={
+                  <RequireRole allowedRoles={['doctor', 'patient']}>
+                    <MedicalRecordDetailsPage />
+                  </RequireRole>
+                } 
               />
               
               <Route 
                 path="/profile" 
-                element={<ProtectedRoute element={<ProfilePage />} />} 
+                element={<ProfilePage />} 
               />
               
               <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Routes>
-        </BrowserRouter>
+        </Router>
       </LocalizationProvider>
     </ThemeProvider>
   );

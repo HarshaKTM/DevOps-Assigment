@@ -100,14 +100,15 @@ const DoctorsPage: React.FC = () => {
           Doctors Management
         </Typography>
         
-        {user?.role === 'admin' && (
+        {user?.role === 'admin' || user?.role === 'administrator' && (
           <Button
             variant="contained"
             color="primary"
             startIcon={<AddIcon />}
             onClick={handleAddDoctor}
+            sx={{ ml: 2 }}
           >
-            Add Doctor
+            Add New Doctor
           </Button>
         )}
       </Box>
@@ -172,8 +173,8 @@ const DoctorsPage: React.FC = () => {
                   <TableCell>{doctor.specialization}</TableCell>
                   <TableCell>
                     <Chip
-                      label={doctor.isActive ? 'Active' : 'Inactive'}
-                      color={doctor.isActive ? 'success' : 'default'}
+                      label={doctor.isActive !== undefined ? (doctor.isActive ? 'Active' : 'Inactive') : 'Active'}
+                      color={doctor.isActive !== undefined ? (doctor.isActive ? 'success' : 'default') : 'success'}
                       size="small"
                     />
                   </TableCell>
@@ -182,7 +183,7 @@ const DoctorsPage: React.FC = () => {
                       <SearchIcon />
                     </IconButton>
                     
-                    {user?.role === 'admin' && (
+                    {(user?.role === 'admin' || user?.role === 'administrator') && (
                       <>
                         <IconButton onClick={() => handleEditDoctor(doctor.id)}>
                           <EditIcon />
