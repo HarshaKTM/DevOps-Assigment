@@ -12,8 +12,10 @@ import {
   getAppointmentsForPatient,
   completeAppointment
 } from '../controllers/appointment.controller';
+import { Router } from 'express';
+import { AppError } from '../middleware/errorHandler';
 
-const router = express.Router();
+const router = Router();
 
 // Create a new appointment
 router.post(
@@ -132,5 +134,25 @@ router.put(
   ],
   completeAppointment
 );
+
+// Get all appointments
+router.get('/', async (req, res, next) => {
+  try {
+    // TODO: Implement appointment listing
+    throw new AppError('Not implemented', 501);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete appointment
+router.delete('/:id', async (req, res, next) => {
+  try {
+    // TODO: Implement appointment deletion
+    throw new AppError('Not implemented', 501);
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default router; 

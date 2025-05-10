@@ -1,150 +1,203 @@
 # Healthcare Appointment System
 
-A microservices-based healthcare appointment system with web and mobile applications, deployed on Google Cloud Platform with CI/CD pipelines.
+A modern, scalable healthcare appointment management system built with Node.js, TypeScript, and PostgreSQL.
 
-## Project Overview
+## Features
 
-This project implements a modern healthcare appointment system with the following components:
-
-- **Backend Microservices**:
-  - Doctor Service - Express.js + MongoDB
-  - Medical Records Service - Express.js + PostgreSQL
-  - Appointment Service
-  - User Authentication Service
-
-- **Frontend**:
-  - Web Dashboard (React + TypeScript + Material UI)
-  - Mobile Application (React Native)
-
-- **DevOps**:
-  - CI/CD with Google Cloud Build
-  - Kubernetes deployment with Kustomize
-  - Infrastructure as Code
-
-## System Architecture
-
-The system follows a microservices architecture for scalability and maintainability:
-
-1. **API Gateway**: Routes requests to appropriate microservices
-2. **Microservices**: Specialized services for specific domain functionality
-3. **Databases**: Combination of relational and document databases
-4. **Frontend**: Responsive web app and mobile app
-5. **DevOps**: Containerization and orchestration with Docker and Kubernetes
-
-## Key Features
-
-- Patient appointment booking and management
-- Doctor schedule management
-- Medical records management
+- User authentication and authorization (Patients, Doctors, Admin)
+- Appointment scheduling and management
+- Patient records management
+- Doctor profiles and availability
 - Real-time notifications
-- Role-based access control
-- Comprehensive reporting and analytics
-- Secure medical data storage
+- RESTful API architecture
+- Secure data handling
+- Scalable microservices architecture
 
-## Technology Stack
+## Tech Stack
 
-- **Backend**:
-  - Node.js / Express.js
-  - MongoDB
-  - PostgreSQL
-  - Redis for caching
-  
-- **Frontend**:
-  - React with TypeScript
-  - Redux for state management
-  - Material UI component library
-  - React Native for mobile app
-  
-- **DevOps & Infrastructure**:
-  - Docker
-  - Kubernetes
-  - Google Cloud Platform
-  - Terraform
-  - Cloud Build CI/CD
+### Backend
+- Node.js with TypeScript
+- Express.js for API routing
+- PostgreSQL for database
+- JWT for authentication
+- Winston for logging
+- Jest for testing
 
-## Development Setup
+### Infrastructure
+- Docker for containerization
+- AWS for cloud hosting
+- Terraform for infrastructure as code
+- GitHub Actions for CI/CD
 
-### Prerequisites
+## Prerequisites
 
-- Node.js (v16+)
-- npm or yarn
+- Node.js (v18 or higher)
+- PostgreSQL (v14 or higher)
 - Docker and Docker Compose
-- Google Cloud SDK
+- AWS CLI (for deployment)
+- Terraform (for infrastructure)
+
+## Project Structure
+
+```
+healthcare-appointment-system/
+├── frontend/                 # React frontend application
+├── services/                 # Backend microservices
+│   ├── appointment-service/  # Appointment management
+│   ├── auth-service/        # Authentication service
+│   └── notification-service/ # Notification service
+├── infrastructure/          # Infrastructure as Code
+│   ├── terraform/           # Terraform configurations
+│   └── kubernetes/          # Kubernetes manifests
+├── ci-cd/                   # CI/CD pipeline configurations
+├── monitoring/              # Monitoring and logging setup
+└── docs/                    # Project documentation
+```
+
+## Getting Started
 
 ### Local Development
 
 1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/healthcare-appointment-system.git
-   cd healthcare-appointment-system
-   ```
-
-2. Install dependencies for all services:
-   ```
-   # For backend services
-   cd backend/doctor-service
-   npm install
-   
-   # For web frontend
-   cd frontend/web-app
-   npm install
-   
-   # For mobile app
-   cd mobile/patient-app
-   npm install
-   ```
-
-3. Start the development servers:
-   ```
-   # Start all services using Docker Compose
-   docker-compose up
-   
-   # Or start individual services
-   cd backend/doctor-service
-   npm run dev
-   
-   cd frontend/web-app
-   npm start
-   ```
-
-## Testing
-
-Run tests for all components:
-
-```
-# Backend services
-cd backend/doctor-service
-npm test
-
-# Web frontend
-cd frontend/web-app
-npm test
-
-# Mobile app
-cd mobile/patient-app
-npm test
+```bash
+git clone https://github.com/your-username/healthcare-appointment-system.git
+cd healthcare-appointment-system
 ```
 
-## Deployment
+2. Install dependencies:
+```bash
+cd services/appointment-service
+npm install
+```
 
-The application is deployed on Google Cloud Platform using Kubernetes:
+3. Set up environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
 
-1. Build and push Docker images:
-   ```
-   gcloud builds submit --config=cloudbuild.yaml
-   ```
+4. Start PostgreSQL database:
+```bash
+docker-compose up -d db
+```
 
-2. Deploy to GKE:
-   ```
-   kubectl apply -k kubernetes/overlays/production
-   ```
+5. Run database migrations:
+```bash
+npm run migrate
+```
+
+6. Start the development server:
+```bash
+npm run dev
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run linting
+npm run lint
+```
+
+### Docker Deployment
+
+1. Build the Docker image:
+```bash
+docker build -t healthcare-appointment-service .
+```
+
+2. Run the container:
+```bash
+docker run -p 3000:3000 healthcare-appointment-service
+```
+
+### AWS Deployment
+
+1. Configure AWS credentials:
+```bash
+aws configure
+```
+
+2. Initialize Terraform:
+```bash
+cd infrastructure/terraform
+terraform init
+```
+
+3. Deploy infrastructure:
+```bash
+terraform plan
+terraform apply
+```
+
+## API Documentation
+
+### Authentication Endpoints
+
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - User login
+- `GET /api/auth/me` - Get current user
+
+### Appointment Endpoints
+
+- `GET /api/appointments` - List appointments
+- `POST /api/appointments` - Create appointment
+- `GET /api/appointments/:id` - Get appointment details
+- `PUT /api/appointments/:id` - Update appointment
+- `DELETE /api/appointments/:id` - Cancel appointment
+
+### Patient Endpoints
+
+- `GET /api/patients` - List patients
+- `POST /api/patients` - Create patient
+- `GET /api/patients/:id` - Get patient details
+- `PUT /api/patients/:id` - Update patient
+- `DELETE /api/patients/:id` - Delete patient
+
+### Doctor Endpoints
+
+- `GET /api/doctors` - List doctors
+- `POST /api/doctors` - Create doctor
+- `GET /api/doctors/:id` - Get doctor details
+- `PUT /api/doctors/:id` - Update doctor
+- `DELETE /api/doctors/:id` - Delete doctor
+
+## Security
+
+- JWT-based authentication
+- Role-based access control
+- Input validation
+- SQL injection prevention
+- XSS protection
+- CORS configuration
+- Rate limiting
+- Data encryption
+
+## Monitoring
+
+- Application logs with Winston
+- Error tracking
+- Performance monitoring
+- Health checks
+- Metrics collection
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+For support, email support@healthcare-app.com or create an issue in the repository. 

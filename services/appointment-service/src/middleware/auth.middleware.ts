@@ -1,61 +1,55 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { ApiError } from './error.middleware';
+import { AppError } from './errorHandler';
 
-// Extended Request interface to include user data
-export interface AuthRequest extends Request {
-  user?: {
-    id: number;
-    email: string;
-    role: string;
-  };
+interface JwtPayload {
+  userId: number;
+  role: string;
 }
 
-export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
-    // Get token from header
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return next(ApiError.unauthorized('No token provided'));
+declare global {
+  namespace Express {
+    interface Request {
+      user?: JwtPayload;
     }
-    
+  }
+}
+
+export const authenticate = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new AppError('No token provided', 401);
+    }
+
     const token = authHeader.split(' ')[1];
-    
-    // Verify token
-    const secret = process.env.JWT_SECRET || 'your-secret-key';
-    const decoded = jwt.verify(token, secret) as {
-      id: number;
-      email: string;
-      role: string;
-    };
-    
-    // Add user info to request
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as JwtPayload;
+
     req.user = decoded;
-    
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      return next(ApiError.unauthorized('Invalid token'));
+      next(new AppError('Invalid token', 401));
+    } else {
+      next(error);
     }
-    if (error instanceof jwt.TokenExpiredError) {
-      return next(ApiError.unauthorized('Token expired'));
-    }
-    next(error);
   }
 };
 
-// Middleware to check user roles
-export const authorize = (roles: string[]) => {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authorize = (...roles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return next(ApiError.unauthorized('User not authenticated'));
+      return next(new AppError('Not authenticated', 401));
     }
-    
+
     if (!roles.includes(req.user.role)) {
-      return next(ApiError.forbidden('Insufficient permissions'));
+      return next(new AppError('Not authorized', 403));
     }
-    
+
     next();
   };
 }; 
