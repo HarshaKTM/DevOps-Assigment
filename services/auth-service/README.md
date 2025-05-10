@@ -15,9 +15,9 @@ A central authentication service for the healthcare appointment system.
 
 ### Authentication
 
-- `POST /api/auth/login` - User login
-- `POST /api/auth/register` - User registration
-- `GET /api/auth/profile` - Get user profile (requires authentication)
+- `POST /auth/login` - User login
+- `POST /auth/register` - User registration
+- `GET /auth/profile` - Get user profile (requires authentication)
 
 ## Setup
 
@@ -50,7 +50,16 @@ A central authentication service for the healthcare appointment system.
    npm run build
    ```
 
-4. Run the service
+4. Seed the database with test users (optional)
+   ```
+   npm run seed
+   ```
+   This will create the following test users:
+   - Admin: admin@healthcare.com / Password123!
+   - Doctor: doctor@healthcare.com / Password123!
+   - Patient: patient@healthcare.com / Password123!
+
+5. Run the service
    ```
    npm start
    ```

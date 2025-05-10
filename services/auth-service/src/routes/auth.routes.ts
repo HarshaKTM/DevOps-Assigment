@@ -7,21 +7,21 @@ import { authenticate } from '../middleware/auth.middleware';
 const router = express.Router();
 
 /**
- * @route POST /api/auth/login
+ * @route POST /auth/login
  * @desc Login user and return JWT token
  * @access Public
  */
 router.post('/login', loginValidator, validateRequest, login);
 
 /**
- * @route POST /api/auth/register
+ * @route POST /auth/register
  * @desc Register new user
  * @access Public
  */
 router.post('/register', registerValidator, validateRequest, register);
 
 /**
- * @route GET /api/auth/profile
+ * @route GET /auth/profile
  * @desc Get user profile
  * @access Private
  */
