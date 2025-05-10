@@ -188,5 +188,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Contact
 
 For questions or support, please contact:
-- Email: support@healthcare-portal.com
-- Website: https://healthcare-portal.com 
+- Email: harshakumara1998030944@gmail.com
+- Website: https://portfolio-hkt.web.app/
