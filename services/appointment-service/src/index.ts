@@ -2,77 +2,40 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
-import { sequelize } from './config/database';
+import { errorHandler } from './middleware/errorHandler';
+import { logger } from './utils/logger';
 import appointmentRoutes from './routes/appointment.routes';
-import { errorHandler } from './middleware/error.middleware';
-import { setupLogging } from './config/logging';
-import { setupPubSub } from './utils/pubsub';
+import authRoutes from './routes/auth.routes';
+import patientRoutes from './routes/patient.routes';
+import doctorRoutes from './routes/doctor.routes';
 
 // Load environment variables
 dotenv.config();
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 8080;
-
-// Setup logging
-const logger = setupLogging();
+const port = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
 app.use(helmet());
+app.use(cors());
 app.use(express.json());
-
-// Request logging
-app.use((req, res, next) => {
-  logger.info(`${req.method} ${req.url}`);
-  next();
-});
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
-});
-
-// Metrics endpoint for Prometheus
-app.get('/metrics', (req, res) => {
-  res.status(200).json({
-    appointments_scheduled_total: 0,
-    appointments_canceled_total: 0,
-    appointments_rescheduled_total: 0,
-    appointment_booking_duration_ms: 0,
-  });
+  res.status(200).json({ status: 'healthy' });
 });
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/patients', patientRoutes);
+app.use('/api/doctors', doctorRoutes);
 
-// Error handling middleware
+// Error handling
 app.use(errorHandler);
 
-// Database connection and server start
-async function startServer() {
-  try {
-    // Setup PubSub
-    await setupPubSub();
-    logger.info('PubSub initialized successfully');
-    
-    // Connect to database
-    await sequelize.authenticate();
-    logger.info('Database connection established successfully');
-    
-    // Sync database models
-    await sequelize.sync();
-    logger.info('Database models synchronized');
-    
-    // Start server
-    app.listen(PORT, () => {
-      logger.info(`Appointment service running on port ${PORT}`);
-    });
-  } catch (error) {
-    logger.error('Unable to start server:', error);
-    process.exit(1);
-  }
-}
-
-startServer(); 
+// Start server
+app.listen(port, () => {
+  logger.info(`Server is running on port ${port}`);
+}); 
