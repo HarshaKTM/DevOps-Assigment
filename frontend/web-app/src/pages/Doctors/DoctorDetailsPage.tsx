@@ -151,7 +151,7 @@ const DoctorDetailsPage: React.FC = () => {
                     <ListItemIcon sx={{ minWidth: '30px' }}>
                       <School fontSize="small" />
                     </ListItemIcon>
-                    <ListItemText primary={edu} />
+                    <ListItemText primary={`${edu.degree} from ${edu.institution} (${edu.year})`} />
                   </ListItem>
                 ))}
               </List>

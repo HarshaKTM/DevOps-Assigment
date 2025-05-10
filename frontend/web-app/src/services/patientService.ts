@@ -1,9 +1,46 @@
 import { api } from './api';
 import { AxiosResponse } from 'axios';
-import { Patient } from '../store/slices/patientSlice';
+// Don't import Patient from patientSlice to avoid the naming conflict
+// instead use the local Patient interface
 
 // Environment check for using mock data
 const isDevEnvironment = process.env.NODE_ENV === 'development';
+
+// Define Patient interface here to avoid conflicts
+export interface Patient {
+  id: number;
+  userId?: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  dateOfBirth: string;
+  gender: 'male' | 'female' | 'other';
+  address: string | {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  };
+  phoneNumber: string;
+  emergencyContact?: {
+    name: string;
+    relationship: string;
+    phoneNumber: string;
+  };
+  medicalHistory?: string | string[];
+  allergies?: string | string[];
+  medications?: string | string[];
+  insurance?: {
+    provider: string;
+    policyNumber: string;
+    groupNumber?: string;
+    primaryInsured?: string;
+  };
+  avatar?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 // Mock patient data for development
 const mockPatients: Patient[] = [
@@ -47,44 +84,6 @@ const mockPatients: Patient[] = [
     avatar: 'https://randomuser.me/api/portraits/men/3.jpg'
   }
 ];
-
-export interface Patient {
-  id: number;
-  userId: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  dateOfBirth: string;
-  gender: 'male' | 'female' | 'other';
-  address: {
-    street: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    country: string;
-  };
-  phoneNumber: string;
-  emergencyContact: {
-    name: string;
-    relationship: string;
-    phoneNumber: string;
-  };
-  medicalHistory: {
-    allergies: string[];
-    medications: string[];
-    conditions: string[];
-    surgeries: string[];
-    familyHistory: string;
-  };
-  insurance: {
-    provider: string;
-    policyNumber: string;
-    groupNumber: string;
-    primaryInsured: string;
-  };
-  createdAt: string;
-  updatedAt: string;
-}
 
 export interface PatientProfile {
   firstName: string;
@@ -159,10 +158,7 @@ class PatientService {
       return {
         ...patient,
         ...profileData,
-        dateOfBirth: profileData.dateOfBirth || patient.dateOfBirth,
-        medicalHistory: profileData.medicalHistory || patient.medicalHistory || [],
-        allergies: profileData.allergies || patient.allergies || [],
-        medications: profileData.medications || patient.medications || []
+        dateOfBirth: profileData.dateOfBirth || patient.dateOfBirth
       };
     }
     
@@ -178,7 +174,7 @@ class PatientService {
   /**
    * Update a patient's medical history
    */
-  async updateMedicalHistory(patientId: number, medicalHistoryData: Partial<Patient['medicalHistory']>): Promise<Patient> {
+  async updateMedicalHistory(patientId: number, medicalHistoryData: string): Promise<Patient> {
     if (isDevEnvironment) {
       await new Promise(resolve => setTimeout(resolve, 500));
       const patient = mockPatients.find(p => p.id === patientId);
@@ -187,12 +183,12 @@ class PatientService {
       }
       return {
         ...patient,
-        medicalHistory: medicalHistoryData || patient.medicalHistory || []
+        medicalHistory: medicalHistoryData || patient.medicalHistory || ''
       };
     }
     
     try {
-      const response = await api.put(`/patients/${patientId}/medical-history`, medicalHistoryData);
+      const response = await api.put(`/patients/${patientId}/medical-history`, { medicalHistory: medicalHistoryData });
       return response.data;
     } catch (error) {
       console.error('Error updating patient medical history:', error);
@@ -203,7 +199,7 @@ class PatientService {
   /**
    * Update a patient's insurance information
    */
-  async updateInsurance(patientId: number, insuranceData: Partial<Patient['insurance']>): Promise<Patient> {
+  async updateInsurance(patientId: number, insuranceData: Patient['insurance']): Promise<Patient> {
     try {
       const response: AxiosResponse<Patient> = await api.put(
         `/api/patients/${patientId}/insurance`, 
@@ -219,7 +215,7 @@ class PatientService {
   /**
    * Update a patient's emergency contact
    */
-  async updateEmergencyContact(patientId: number, contactData: Partial<Patient['emergencyContact']>): Promise<Patient> {
+  async updateEmergencyContact(patientId: number, contactData: Patient['emergencyContact']): Promise<Patient> {
     try {
       const response: AxiosResponse<Patient> = await api.put(
         `/api/patients/${patientId}/emergency-contact`, 
