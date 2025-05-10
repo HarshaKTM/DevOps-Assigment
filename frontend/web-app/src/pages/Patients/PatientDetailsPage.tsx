@@ -55,7 +55,7 @@ const PatientDetailsPage: React.FC = () => {
     (state: RootState) => state.appointment
   );
 
-  const { medicalRecords, loading: recordsLoading } = useSelector(
+  const { records: medicalRecords, loading: recordsLoading } = useSelector(
     (state: RootState) => state.medicalRecord
   );
 
@@ -185,7 +185,9 @@ const PatientDetailsPage: React.FC = () => {
                         {new Date(appointment.date).toLocaleDateString()} - {appointment.startTime}
                       </Typography>
                       <Typography variant="body2">
-                        Doctor: Dr. {appointment.doctor.firstName} {appointment.doctor.lastName}
+                        Doctor: Dr. {appointment.doctor ? 
+                          `${appointment.doctor.firstName} ${appointment.doctor.lastName}` : 
+                          `#${appointment.doctorId}`}
                       </Typography>
                       <Typography variant="body2">
                         Status: {appointment.status}
@@ -205,7 +207,7 @@ const PatientDetailsPage: React.FC = () => {
                 {medicalRecords.length === 0 ? (
                   <Typography>No medical records found</Typography>
                 ) : (
-                  medicalRecords.map((record) => (
+                  medicalRecords.map((record: any) => (
                     <Paper key={record.id} sx={{ p: 2, mb: 2 }}>
                       <Typography variant="subtitle1">
                         {record.type} - {new Date(record.date).toLocaleDateString()}

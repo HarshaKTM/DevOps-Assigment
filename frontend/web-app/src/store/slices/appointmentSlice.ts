@@ -18,6 +18,10 @@ export interface Appointment {
     firstName: string;
     lastName: string;
   };
+  patient?: {
+    firstName: string;
+    lastName: string;
+  };
 }
 
 interface AppointmentState {

@@ -123,8 +123,8 @@ const UpcomingAppointmentsCard: React.FC<UpcomingAppointmentsCardProps> = ({
                           color="text.secondary"
                           sx={{ display: 'block', textTransform: 'capitalize' }}
                         >
-                          {appointment.type} - {appointment.reason.substring(0, 30)}
-                          {appointment.reason.length > 30 ? '...' : ''}
+                          {appointment.type} - {appointment.reason ? appointment.reason.substring(0, 30) : 'No reason provided'}
+                          {appointment.reason && appointment.reason.length > 30 ? '...' : ''}
                         </Typography>
                       </>
                     }

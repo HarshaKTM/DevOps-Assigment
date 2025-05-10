@@ -18,7 +18,7 @@ import { LockOutlined as LockOutlinedIcon } from '@mui/icons-material';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 
-import { login, selectIsAuthenticated, selectIsLoading, selectError, clearErrors } from '../store/slices/authSlice';
+import { loginWithDispatch, selectIsAuthenticated, selectIsLoading, selectError } from '../store/slices/authSlice';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -33,12 +33,7 @@ const Login: React.FC = () => {
     if (isAuthenticated) {
       navigate('/');
     }
-
-    return () => {
-      // Clear errors when unmounting
-      dispatch(clearErrors());
-    };
-  }, [isAuthenticated, navigate, dispatch]);
+  }, [isAuthenticated, navigate]);
 
   // Form validation schema
   const validationSchema = Yup.object({
@@ -57,10 +52,23 @@ const Login: React.FC = () => {
       password: '',
     },
     validationSchema: validationSchema,
-    onSubmit: (values) => {
-      dispatch(login(values));
+    onSubmit: async (values) => {
+      try {
+        await loginWithDispatch(values, dispatch).unwrap();
+        // If successful login, navigate to dashboard
+        navigate('/dashboard');
+      } catch (error) {
+        console.error('Login failed:', error);
+      }
     },
   });
+
+  // Clear errors when component unmounts
+  useEffect(() => {
+    return () => {
+      // Cleanup
+    };
+  }, []);
 
   return (
     <Box

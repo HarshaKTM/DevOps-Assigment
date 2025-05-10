@@ -36,22 +36,26 @@ const Dashboard: React.FC = () => {
   const user = useSelector(selectUser);
   const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadData = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const appointments = await appointmentService.fetchUpcomingAppointments();
+        const appointments = await appointmentService.getUpcomingAppointments(user?.id || 0);
         setUpcomingAppointments(appointments);
       } catch (error) {
-        console.error('Failed to load upcoming appointments:', error);
+        console.error('Failed to fetch appointments:', error);
+        setError('Failed to load upcoming appointments');
       } finally {
         setLoading(false);
       }
     };
 
-    loadData();
-  }, []);
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
 
   const handleBookAppointment = () => {
     navigate('/book-appointment');
@@ -134,7 +138,9 @@ const Dashboard: React.FC = () => {
                           </Avatar>
                         </ListItemAvatar>
                         <ListItemText
-                          primary={`Dr. ${appointment.doctorName}`}
+                          primary={appointment.doctor ? 
+                            `Dr. ${appointment.doctor.firstName} ${appointment.doctor.lastName}` : 
+                            `Dr. #${appointment.doctorId}`}
                           secondary={
                             <React.Fragment>
                               <Typography
@@ -143,10 +149,9 @@ const Dashboard: React.FC = () => {
                                 variant="body2"
                                 color="text.primary"
                               >
-                                {format(new Date(appointment.startTime), 'PPP')} at {format(new Date(appointment.startTime), 'p')}
+                                {format(new Date(appointment.date + 'T' + appointment.startTime), 'PPP')} at {appointment.startTime}
                               </Typography>
                               {appointment.type} appointment
-                              {appointment.location && ` at ${appointment.location}`}
                             </React.Fragment>
                           }
                         />

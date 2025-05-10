@@ -1,17 +1,17 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { api } from '../../services/api';
 
-export interface User {
+export interface AuthUser {
   id: number;
+  email: string;
   firstName: string;
   lastName: string;
-  email: string;
-  role: 'doctor' | 'patient';
+  role: 'doctor' | 'patient' | 'admin' | 'administrator';
   avatar?: string;
 }
 
 interface AuthState {
-  user: User | null;
+  user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
   loading: boolean;
@@ -43,7 +43,7 @@ export const register = createAsyncThunk(
     password: string; 
     firstName: string; 
     lastName: string; 
-    role: 'doctor' | 'patient';
+    role: 'doctor' | 'patient' | 'admin' | 'administrator';
   }) => {
     const response = await api.post('/auth/register', { email, password, firstName, lastName, role });
     const { token, user } = response.data;
@@ -116,7 +116,7 @@ const authSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(login.fulfilled, (state, action: PayloadAction<{ token: string; user: User }>) => {
+      .addCase(login.fulfilled, (state, action: PayloadAction<{ token: string; user: AuthUser }>) => {
         state.loading = false;
         state.isAuthenticated = true;
         state.user = action.payload.user;
@@ -131,7 +131,7 @@ const authSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(register.fulfilled, (state, action: PayloadAction<{ token: string; user: User }>) => {
+      .addCase(register.fulfilled, (state, action: PayloadAction<{ token: string; user: AuthUser }>) => {
         state.loading = false;
         state.isAuthenticated = true;
         state.user = action.payload.user;
@@ -146,7 +146,7 @@ const authSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(getCurrentUser.fulfilled, (state, action: PayloadAction<User>) => {
+      .addCase(getCurrentUser.fulfilled, (state, action: PayloadAction<AuthUser>) => {
         state.loading = false;
         state.user = action.payload;
       })
@@ -159,7 +159,7 @@ const authSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(loadUser.fulfilled, (state, action: PayloadAction<User>) => {
+      .addCase(loadUser.fulfilled, (state, action: PayloadAction<AuthUser>) => {
         state.loading = false;
         state.isAuthenticated = true;
         state.user = action.payload;
@@ -210,4 +210,9 @@ export const selectIsAuthenticated = (state: { auth: AuthState }) => state.auth.
 export const selectIsLoading = (state: { auth: AuthState }) => state.auth.loading;
 export const selectError = (state: { auth: AuthState }) => state.auth.error;
 
-export default authSlice.reducer; 
+export default authSlice.reducer;
+
+// Exporting a helper function to handle login with dispatch
+export const loginWithDispatch = (credentials: { email: string; password: string }, dispatch: any): any => {
+  return dispatch(login(credentials));
+}; 

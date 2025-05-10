@@ -13,6 +13,7 @@ import {
   FormControl,
   InputLabel,
   Select,
+  SelectChangeEvent,
 } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
@@ -82,6 +83,14 @@ const PatientFormPage: React.FC = () => {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleSelectChange = (e: SelectChangeEvent<string>) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -182,7 +191,7 @@ const PatientFormPage: React.FC = () => {
                 <Select
                   name="gender"
                   value={formData.gender}
-                  onChange={handleChange}
+                  onChange={handleSelectChange}
                   label="Gender"
                 >
                   {genders.map((gender) => (

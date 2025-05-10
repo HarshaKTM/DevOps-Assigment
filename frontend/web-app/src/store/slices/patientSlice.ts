@@ -13,6 +13,18 @@ export interface Patient {
   medicalHistory?: string;
   allergies?: string;
   avatar?: string;
+  medications?: string;
+  emergencyContact?: {
+    name: string;
+    relationship: string;
+    phoneNumber: string;
+  };
+  insurance?: {
+    provider: string;
+    policyNumber: string;
+    groupNumber: string;
+    primaryInsured: string;
+  };
 }
 
 interface PatientState {

@@ -145,7 +145,7 @@ const MedicalRecordDetailsPage: React.FC = () => {
         <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
           <Box>
             <Typography variant="h6" component="h2">
-              {medicalRecord.title || `${medicalRecord.recordType} Record`}
+              {medicalRecord.recordType || `Medical Record ${medicalRecord.id}`}
             </Typography>
             <Chip
               label={medicalRecord.recordType?.replace('_', ' ')}
@@ -177,29 +177,29 @@ const MedicalRecordDetailsPage: React.FC = () => {
             <Box display="flex" alignItems="center" mb={2}>
               <LocalHospital sx={{ mr: 1, color: 'text.secondary' }} />
               <Typography variant="body1">
-                <strong>Performed By:</strong> {medicalRecord.performedBy || 'Not specified'}
+                <strong>Performed By:</strong> {`Doctor #${medicalRecord.doctorId}`}
               </Typography>
             </Box>
           </Grid>
           
           <Grid item xs={12} md={6}>
-            {medicalRecord.description && (
+            {(medicalRecord.prescription || medicalRecord.notes) && (
               <Box mb={2}>
                 <Box display="flex" alignItems="flex-start" mb={1}>
                   <Description sx={{ mr: 1, color: 'text.secondary', mt: 0.5 }} />
                   <Typography variant="body1" component="div">
-                    <strong>Description:</strong>
+                    <strong>Details:</strong>
                   </Typography>
                 </Box>
                 <Typography variant="body1" sx={{ ml: 4 }}>
-                  {medicalRecord.description}
+                  {medicalRecord.prescription || medicalRecord.notes || ''}
                 </Typography>
               </Box>
             )}
           </Grid>
         </Grid>
         
-        {medicalRecord.attachments && medicalRecord.attachments.length > 0 && (
+        {medicalRecord.attachments && Array.isArray(medicalRecord.attachments) && medicalRecord.attachments.length > 0 && (
           <Box mt={3}>
             <Typography variant="subtitle1" gutterBottom>
               <Box display="flex" alignItems="center">
@@ -208,24 +208,33 @@ const MedicalRecordDetailsPage: React.FC = () => {
               </Box>
             </Typography>
             <List>
-              {medicalRecord.attachments.map((attachment, index) => (
-                <ListItem
-                  key={index}
-                  button
-                  component="a"
-                  href={attachment.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ListItemIcon>
-                    {getAttachmentIcon(attachment.type)}
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary={attachment.name}
-                    secondary={`${(attachment.size / 1024).toFixed(2)} KB`}
-                  />
-                </ListItem>
-              ))}
+              {medicalRecord.attachments.map((attachment, index) => {
+                // Safely cast to any to handle unknown attachment structure
+                const attachmentItem = attachment as any;
+                const attachmentUrl = typeof attachment === 'string' ? attachment : attachmentItem.url || '';
+                const attachmentName = typeof attachment === 'string' ? `Attachment ${index + 1}` : attachmentItem.name || `Attachment ${index + 1}`;
+                const attachmentType = typeof attachment === 'string' ? 'document' : attachmentItem.type || 'document';
+                const attachmentSize = typeof attachment === 'string' ? 0 : attachmentItem.size || 0;
+                
+                return (
+                  <ListItem
+                    key={index}
+                    button
+                    component="a"
+                    href={attachmentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ListItemIcon>
+                      {getAttachmentIcon(attachmentType)}
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary={attachmentName}
+                      secondary={attachmentSize ? `${(attachmentSize / 1024).toFixed(2)} KB` : ''}
+                    />
+                  </ListItem>
+                );
+              })}
             </List>
           </Box>
         )}

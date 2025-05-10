@@ -2,6 +2,12 @@ import { api } from './api';
 import { AxiosResponse } from 'axios';
 import { MedicalRecord } from '../store/slices/medicalRecordSlice';
 
+// Environment check for using mock data
+const isDevEnvironment = process.env.NODE_ENV === 'development';
+
+// Mock medical records
+export const mockMedicalRecords: MedicalRecord[] = [];
+
 // ... existing code ...
 
 export const fetchPatientMedicalRecords = async (patientId: number): Promise<MedicalRecord[]> => {

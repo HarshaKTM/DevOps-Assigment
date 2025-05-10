@@ -33,6 +33,7 @@ import StatCard from '../../components/Dashboard/StatCard';
 import UpcomingAppointmentsCard from '../../components/Dashboard/UpcomingAppointmentsCard';
 import RecentActivityCard from '../../components/Dashboard/RecentActivityCard';
 import PatientStatistics from '../../components/Dashboard/PatientStatistics';
+import { AuthUser } from '../../store/slices/authSlice';
 
 const DashboardPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);

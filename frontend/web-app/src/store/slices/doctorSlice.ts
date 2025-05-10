@@ -10,8 +10,11 @@ export interface Doctor {
   qualifications: string[];
   yearsOfExperience: number;
   about: string;
-  education: string[];
+  education: { degree: string; institution: string; year: number; }[];
   avatar?: string;
+  isActive?: boolean;
+  bio?: string;
+  availability?: { [key: string]: string[] };
 }
 
 interface DoctorState {
@@ -122,7 +125,7 @@ const doctorSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchDoctorsBySpecialization.fulfilled, (state, action: PayloadAction<Doctor[]>) => {
+      .addCase(fetchDoctorsBySpecialization.fulfilled, (state, action: PayloadAction<Doctor[], string, { arg: string }>) => {
         state.loading = false;
         state.doctorsBySpecialization[action.meta.arg] = action.payload;
       })

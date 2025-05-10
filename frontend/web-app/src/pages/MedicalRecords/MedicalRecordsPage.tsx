@@ -43,8 +43,8 @@ interface MedicalRecord {
 const MedicalRecordsPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
-  const { medicalRecords, loading, error } = useSelector(
-    (state: RootState) => state.medicalRecords
+  const { records: medicalRecords, loading, error } = useSelector(
+    (state: RootState) => state.medicalRecord
   );
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -68,11 +68,13 @@ const MedicalRecordsPage: React.FC = () => {
     setPage(0);
   };
 
-  const filteredRecords = medicalRecords.filter(
-    (record: MedicalRecord) =>
-      record.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.diagnosis.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredRecords = searchTerm
+    ? medicalRecords.filter(
+        (record: any) =>
+          (record.type && record.type.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (record.diagnosis && record.diagnosis.toLowerCase().includes(searchTerm.toLowerCase()))
+      )
+    : medicalRecords;
 
   const paginatedRecords = filteredRecords.slice(
     page * rowsPerPage,
@@ -151,7 +153,7 @@ const MedicalRecordsPage: React.FC = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedRecords.map((record: MedicalRecord) => (
+              paginatedRecords.map((record: any) => (
                 <TableRow key={record.id} hover>
                   <TableCell
                     onClick={() => handleViewRecord(record.id)}
