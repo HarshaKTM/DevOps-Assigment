@@ -1,7 +1,7 @@
 import { api } from './api';
 
-// Development mode with mock data
-const isDevEnvironment = true;
+// Development mode with mock data - change to false to use real API
+const isDevEnvironment = process.env.NODE_ENV === 'development';
 
 // Mock user data for development
 const mockUser = {
@@ -68,8 +68,14 @@ class AuthApiService {
       }
     }
     
-    const response = await api.post('/api/auth/login', { email, password });
-    return response.data;
+    try {
+      // Updated endpoint to match our backend route
+      const response = await api.post('/auth/login', { email, password });
+      return response.data;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
   }
 
   async register(userData: {
@@ -77,7 +83,8 @@ class AuthApiService {
     password: string;
     firstName: string;
     lastName: string;
-    phoneNumber: string;
+    phoneNumber?: string;
+    role?: string;
   }) {
     if (isDevEnvironment) {
       // Simulate API delay
@@ -91,7 +98,8 @@ class AuthApiService {
             email: userData.email,
             firstName: userData.firstName,
             lastName: userData.lastName,
-            phoneNumber: userData.phoneNumber || mockUser.phoneNumber
+            phoneNumber: userData.phoneNumber || mockUser.phoneNumber,
+            role: userData.role || 'patient'
           },
           token: mockToken
         };
@@ -108,8 +116,14 @@ class AuthApiService {
       }
     }
     
-    const response = await api.post('/api/auth/register', userData);
-    return response.data;
+    try {
+      // Updated endpoint to match our backend route
+      const response = await api.post('/auth/register', userData);
+      return response.data;
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    }
   }
 
   async getCurrentUser() {
@@ -120,8 +134,14 @@ class AuthApiService {
       return mockUser;
     }
     
-    const response = await api.get('/api/auth/me');
-    return response.data;
+    try {
+      // Updated endpoint to match our backend route
+      const response = await api.get('/auth/profile');
+      return response.data.user;
+    } catch (error) {
+      console.error('Get current user error:', error);
+      throw error;
+    }
   }
 
   async forgotPassword(email: string) {
