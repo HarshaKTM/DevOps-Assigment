@@ -19,7 +19,7 @@ import {
   ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
-import { Appointment } from '../../services/appointmentService';
+import { Appointment } from '../../store/slices/appointmentSlice';
 
 interface UpcomingAppointmentsCardProps {
   appointments: Appointment[];

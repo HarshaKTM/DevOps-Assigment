@@ -1,4 +1,6 @@
 import { rest } from 'msw';
+import { format } from 'date-fns';
+import { Appointment } from '../store/slices/appointmentSlice';
 
 // Mock data
 import { mockUser } from './mockData/users';
@@ -82,7 +84,7 @@ export const handlers = [
     
     return res(
       ctx.status(200),
-      ctx.json(mockAppointments.filter(a => a.patientId === Number(patientId)))
+      ctx.json(mockAppointments.filter((a: Appointment) => a.patientId === Number(patientId)))
     );
   }),
   
@@ -91,7 +93,7 @@ export const handlers = [
     const currentDate = new Date().toISOString().split('T')[0];
     
     const upcomingAppointments = mockAppointments.filter(
-      a => a.patientId === Number(patientId) && a.date >= currentDate && a.status === 'scheduled'
+      (a: Appointment) => a.patientId === Number(patientId) && a.date >= currentDate && a.status === 'scheduled'
     );
     
     return res(
@@ -105,7 +107,7 @@ export const handlers = [
     const currentDate = new Date().toISOString().split('T')[0];
     
     const pastAppointments = mockAppointments.filter(
-      a => a.patientId === Number(patientId) && 
+      (a: Appointment) => a.patientId === Number(patientId) && 
           (a.date < currentDate || ['completed', 'cancelled', 'no-show'].includes(a.status))
     );
     
@@ -117,7 +119,7 @@ export const handlers = [
   
   rest.get('/api/appointments/:id', (req, res, ctx) => {
     const { id } = req.params;
-    const appointment = mockAppointments.find(a => a.id === Number(id));
+    const appointment = mockAppointments.find((a: Appointment) => a.id === Number(id));
     
     if (appointment) {
       return res(
@@ -153,7 +155,7 @@ export const handlers = [
   rest.put('/api/appointments/:id', (req, res, ctx) => {
     const { id } = req.params;
     const appointmentData = req.body as any;
-    const appointmentIndex = mockAppointments.findIndex(a => a.id === Number(id));
+    const appointmentIndex = mockAppointments.findIndex((a: Appointment) => a.id === Number(id));
     
     if (appointmentIndex !== -1) {
       const updatedAppointment = {
@@ -178,7 +180,7 @@ export const handlers = [
   
   rest.patch('/api/appointments/:id/cancel', (req, res, ctx) => {
     const { id } = req.params;
-    const appointmentIndex = mockAppointments.findIndex(a => a.id === Number(id));
+    const appointmentIndex = mockAppointments.findIndex((a: Appointment) => a.id === Number(id));
     
     if (appointmentIndex !== -1) {
       return res(

@@ -1,25 +1,37 @@
-import api from './api';
+import { api } from './api';
 import { AxiosResponse } from 'axios';
+import { Appointment } from '../store/slices/appointmentSlice';
 
 export interface TimeSlot {
-  time: string;
-  isAvailable: boolean;
-}
-
-export interface Appointment {
-  id: number;
-  patientId: number;
-  doctorId: number;
-  date: string;
   startTime: string;
   endTime: string;
-  status: 'scheduled' | 'completed' | 'cancelled' | 'no-show';
-  type: 'regular' | 'follow-up' | 'emergency' | 'consultation';
-  reason: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
+  available: boolean;
 }
+
+// Environment check for using mock data
+const isDevEnvironment = process.env.NODE_ENV === 'development';
+
+// Mock appointment data for development
+const mockTimeSlots: TimeSlot[] = [
+  { startTime: '09:00', endTime: '09:30', available: true },
+  { startTime: '09:30', endTime: '10:00', available: true },
+  { startTime: '10:00', endTime: '10:30', available: false },
+  { startTime: '10:30', endTime: '11:00', available: true },
+  { startTime: '11:00', endTime: '11:30', available: true },
+  { startTime: '11:30', endTime: '12:00', available: false },
+  { startTime: '12:00', endTime: '12:30', available: false },
+  { startTime: '12:30', endTime: '13:00', available: false },
+  { startTime: '13:00', endTime: '13:30', available: true },
+  { startTime: '13:30', endTime: '14:00', available: true },
+  { startTime: '14:00', endTime: '14:30', available: true },
+  { startTime: '14:30', endTime: '15:00', available: false },
+  { startTime: '15:00', endTime: '15:30', available: true },
+  { startTime: '15:30', endTime: '16:00', available: true },
+  { startTime: '16:00', endTime: '16:30', available: false },
+  { startTime: '16:30', endTime: '17:00', available: true },
+];
+
+export const mockAppointments: Appointment[] = [];
 
 class AppointmentService {
   /**
@@ -79,10 +91,16 @@ class AppointmentService {
    */
   async getDoctorTimeSlots(doctorId: number, date: string): Promise<TimeSlot[]> {
     try {
-      const response: AxiosResponse<TimeSlot[]> = await api.get(`/api/appointments/doctor/${doctorId}/slots`, {
-        params: { date }
-      });
-      return response.data;
+      if (isDevEnvironment) {
+        // Return mock data for development
+        return mockTimeSlots;
+      } else {
+        // Call the API for production
+        const response: AxiosResponse<TimeSlot[]> = await api.get(`/api/appointments/doctor/${doctorId}/slots`, {
+          params: { date }
+        });
+        return response.data;
+      }
     } catch (error) {
       console.error(`Error fetching time slots for doctor ${doctorId} on ${date}:`, error);
       throw error;
@@ -90,12 +108,33 @@ class AppointmentService {
   }
 
   /**
+   * Fetch available time slots for a doctor on a specific date
+   * This is an alias for getDoctorTimeSlots for backward compatibility
+   */
+  async fetchAvailableTimeSlots(doctorId: number, date: string): Promise<TimeSlot[]> {
+    return this.getDoctorTimeSlots(doctorId, date);
+  }
+
+  /**
    * Book a new appointment
    */
   async bookAppointment(appointmentData: Partial<Appointment>): Promise<Appointment> {
     try {
-      const response: AxiosResponse<Appointment> = await api.post('/api/appointments', appointmentData);
-      return response.data;
+      if (isDevEnvironment) {
+        // Create mock appointment for development
+        const newAppointment: Appointment = {
+          id: Math.floor(Math.random() * 1000) + 1,
+          ...appointmentData,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        mockAppointments.push(newAppointment);
+        return newAppointment;
+      } else {
+        // Call the API for production
+        const response: AxiosResponse<Appointment> = await api.post('/api/appointments', appointmentData);
+        return response.data;
+      }
     } catch (error) {
       console.error('Error booking appointment:', error);
       throw error;
@@ -120,8 +159,23 @@ class AppointmentService {
    */
   async cancelAppointment(appointmentId: number): Promise<{ success: boolean }> {
     try {
-      const response: AxiosResponse<{ success: boolean }> = await api.patch(`/api/appointments/${appointmentId}/cancel`);
-      return response.data;
+      if (isDevEnvironment) {
+        // Update mock appointment for development
+        const appointmentIndex = mockAppointments.findIndex(a => a.id === appointmentId);
+        if (appointmentIndex === -1) {
+          throw new Error('Appointment not found');
+        }
+        mockAppointments[appointmentIndex] = {
+          ...mockAppointments[appointmentIndex],
+          status: 'cancelled',
+          updatedAt: new Date().toISOString()
+        };
+        return { success: true };
+      } else {
+        // Call the API for production
+        const response: AxiosResponse<{ success: boolean }> = await api.patch(`/api/appointments/${appointmentId}/cancel`);
+        return response.data;
+      }
     } catch (error) {
       console.error(`Error cancelling appointment ${appointmentId}:`, error);
       throw error;

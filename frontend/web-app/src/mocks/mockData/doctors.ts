@@ -1,4 +1,4 @@
-import { Doctor } from '../../services/doctorService';
+import { Doctor } from '../../store/slices/doctorSlice';
 
 export const mockDoctors: Doctor[] = [
   {
@@ -30,7 +30,7 @@ export const mockDoctors: Doctor[] = [
     email: 'anna.garcia@example.com',
     specialization: 'Pediatrics',
     yearsOfExperience: 8,
-    about: 'Dr. Anna Garcia is a caring pediatrician dedicated to children's health and wellbeing.',
+    about: "Dr. Anna Garcia is a caring pediatrician dedicated to children's health and wellbeing.",
     education: 'MD from University of California',
     avatar: 'https://i.pravatar.cc/150?u=doctor3',
   },

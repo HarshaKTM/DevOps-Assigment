@@ -25,10 +25,10 @@ import {
 import { format } from 'date-fns';
 
 // Services
-import { fetchUpcomingAppointments } from '../services/appointmentService';
+import { appointmentService } from '../services/appointmentService';
 
 // Types
-import { Appointment } from '../types/appointment';
+import { Appointment } from '../store/slices/appointmentSlice';
 import { selectUser } from '../store/slices/authSlice';
 
 const Dashboard: React.FC = () => {
@@ -41,7 +41,7 @@ const Dashboard: React.FC = () => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const appointments = await fetchUpcomingAppointments();
+        const appointments = await appointmentService.fetchUpcomingAppointments();
         setUpcomingAppointments(appointments);
       } catch (error) {
         console.error('Failed to load upcoming appointments:', error);

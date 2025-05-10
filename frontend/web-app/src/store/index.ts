@@ -1,15 +1,17 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
-import appointmentReducer from './slices/appointmentSlice';
 import doctorReducer from './slices/doctorSlice';
-import medicalRecordsReducer from './slices/medicalRecordsSlice';
+import patientReducer from './slices/patientSlice';
+import appointmentReducer from './slices/appointmentSlice';
+import medicalRecordReducer from './slices/medicalRecordSlice';
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
-    appointment: appointmentReducer,
     doctor: doctorReducer,
-    medicalRecords: medicalRecordsReducer,
+    patient: patientReducer,
+    appointment: appointmentReducer,
+    medicalRecord: medicalRecordReducer,
   },
   middleware: (getDefaultMiddleware) => 
     getDefaultMiddleware({

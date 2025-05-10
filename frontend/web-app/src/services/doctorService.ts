@@ -1,5 +1,6 @@
-import api from './api';
+import { api } from './api';
 import { AxiosResponse } from 'axios';
+import { Doctor } from '../store/slices/doctorSlice';
 
 // Mock data for development
 const isDevEnvironment = true;
@@ -80,27 +81,6 @@ const mockDoctors = [
   },
 ];
 
-export interface Doctor {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  specialization: string;
-  yearsOfExperience: number;
-  about: string;
-  education: string;
-  avatar: string;
-  schedule?: {
-    [day: string]: {
-      start: string;
-      end: string;
-      isAvailable: boolean;
-    };
-  };
-  rating?: number;
-  reviewCount?: number;
-}
-
 export interface DoctorSchedule {
   doctorId: number;
   schedule: {
@@ -119,14 +99,23 @@ class DoctorService {
   async getAllDoctors(): Promise<Doctor[]> {
     if (isDevEnvironment) {
       await new Promise(resolve => setTimeout(resolve, 500));
-      return mockDoctors;
+      return mockDoctors.map(doctor => ({
+        ...doctor,
+        qualifications: [doctor.qualifications],
+        education: [{
+          degree: 'MD',
+          institution: 'Medical School',
+          year: 2010
+        }],
+        about: doctor.bio
+      }));
     }
     
     try {
-      const response: AxiosResponse<Doctor[]> = await api.get('/api/doctors');
+      const response = await api.get('/doctors');
       return response.data;
     } catch (error) {
-      console.error('Error fetching all doctors:', error);
+      console.error('Error fetching doctors:', error);
       throw error;
     }
   }
@@ -137,20 +126,27 @@ class DoctorService {
   async getDoctorById(doctorId: number): Promise<Doctor> {
     if (isDevEnvironment) {
       await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const doctor = mockDoctors.find(doctor => doctor.id === doctorId);
+      const doctor = mockDoctors.find(d => d.id === doctorId);
       if (!doctor) {
         throw new Error('Doctor not found');
       }
-      
-      return doctor;
+      return {
+        ...doctor,
+        qualifications: [doctor.qualifications],
+        education: [{
+          degree: 'MD',
+          institution: 'Medical School',
+          year: 2010
+        }],
+        about: doctor.bio
+      };
     }
     
     try {
-      const response: AxiosResponse<Doctor> = await api.get(`/api/doctors/${doctorId}`);
+      const response = await api.get(`/doctors/${doctorId}`);
       return response.data;
     } catch (error) {
-      console.error(`Error fetching doctor ${doctorId}:`, error);
+      console.error('Error fetching doctor:', error);
       throw error;
     }
   }
@@ -161,17 +157,25 @@ class DoctorService {
   async getDoctorsBySpecialization(specialization: string): Promise<Doctor[]> {
     if (isDevEnvironment) {
       await new Promise(resolve => setTimeout(resolve, 500));
-      
-      return mockDoctors.filter(
-        doctor => doctor.specialization.toLowerCase() === specialization.toLowerCase()
-      );
+      return mockDoctors
+        .filter(doctor => doctor.specialization.toLowerCase() === specialization.toLowerCase())
+        .map(doctor => ({
+          ...doctor,
+          qualifications: [doctor.qualifications],
+          education: [{
+            degree: 'MD',
+            institution: 'Medical School',
+            year: 2010
+          }],
+          about: doctor.bio
+        }));
     }
     
     try {
-      const response: AxiosResponse<Doctor[]> = await api.get(`/api/doctors/specialization/${specialization}`);
+      const response = await api.get(`/doctors/specialization/${specialization}`);
       return response.data;
     } catch (error) {
-      console.error(`Error fetching doctors with specialization ${specialization}:`, error);
+      console.error('Error fetching doctors by specialization:', error);
       throw error;
     }
   }

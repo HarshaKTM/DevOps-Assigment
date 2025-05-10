@@ -51,7 +51,7 @@ const DashboardPage: React.FC = () => {
           if (user.role === 'doctor') {
             // Load doctor's upcoming appointments
             await dispatch(fetchUpcomingAppointments(user.id)).unwrap();
-          } else if (user.role === 'admin') {
+          } else if (user.role === 'admin' || user.role === 'administrator') {
             // For admin, load all appointments
             await dispatch(fetchUpcomingAppointments(0)).unwrap();
           }
@@ -146,7 +146,7 @@ const DashboardPage: React.FC = () => {
         </Grid>
         
         {/* Patient Statistics (for doctors/admin) */}
-        {(user?.role === 'doctor' || user?.role === 'admin') && (
+        {(user?.role === 'doctor' || user?.role === 'admin' || user?.role === 'administrator') && (
           <Grid item xs={12}>
             <PatientStatistics />
           </Grid>

@@ -1,4 +1,4 @@
-import api from './api';
+import { api } from './api';
 
 // Development mode with mock data
 const isDevEnvironment = true;
