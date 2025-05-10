@@ -1,203 +1,192 @@
-# Healthcare Appointment System
+# Healthcare Portal
 
-A modern, scalable healthcare appointment management system built with Node.js, TypeScript, and PostgreSQL.
+A modern, secure healthcare platform for connecting patients with healthcare providers, managing appointments, and accessing medical records.
+
+![Healthcare Portal](https://via.placeholder.com/800x400?text=Healthcare+Portal)
+
+## Overview
+
+Healthcare Portal is a comprehensive platform designed to streamline healthcare services by providing a unified interface for patients, doctors, and administrators. The platform enables appointment scheduling, medical record management, secure communications, and patient monitoring.
 
 ## Features
 
-- User authentication and authorization (Patients, Doctors, Admin)
-- Appointment scheduling and management
-- Patient records management
-- Doctor profiles and availability
-- Real-time notifications
-- RESTful API architecture
-- Secure data handling
-- Scalable microservices architecture
+- **User Authentication**: Secure login and registration for patients, doctors, and admins
+- **Appointment Management**: Schedule, reschedule, and cancel appointments
+- **Medical Records**: Access and manage patient health records securely
+- **Doctor Directory**: Find specialists and healthcare providers
+- **Patient Dashboard**: Personalized view of healthcare information
+- **Responsive Design**: Optimized for desktop and mobile devices
+
+## Architecture
+
+The application follows a microservices architecture deployed on Google Cloud Platform using Kubernetes and managed with Terraform:
+
+- **Frontend**: React.js web application
+- **Backend Services**:
+  - Authentication Service (Node.js/Express)
+  - Patient Service (Node.js/Express)
+  - Appointment Service (Node.js/Express)
+  - Doctor Service (Node.js/Express)
+  - Medical Records Service (Node.js/Express)
+- **Database**: PostgreSQL for structured data
+- **Caching Layer**: Redis for performance optimization
+- **Message Queue**: Google Pub/Sub for service communication
 
 ## Tech Stack
 
+### Frontend
+- React.js
+- Redux for state management
+- React Router for navigation
+- Custom CSS with responsive design
+
 ### Backend
 - Node.js with TypeScript
-- Express.js for API routing
-- PostgreSQL for database
-- JWT for authentication
-- Winston for logging
-- Jest for testing
+- Express.js for API routing and RESTful endpoints
+- JWT for authentication and authorization
+- Sequelize ORM for database interactions
+- PostgreSQL for persistent data storage
+- Winston for structured logging and error tracking
+- Jest and Supertest for unit and integration testing
+- Swagger for API documentation
 
-### Infrastructure
-- Docker for containerization
-- AWS for cloud hosting
-- Terraform for infrastructure as code
-- GitHub Actions for CI/CD
+### DevOps & Infrastructure
+- **Google Cloud Platform**: Cloud infrastructure provider
+- **Kubernetes**: Container orchestration for microservices deployment
+- **Terraform**: Infrastructure as Code (IaC) for managing GCP resources
+- **Docker**: Containerization of all services
+- **Git**: Version control and CI/CD workflow
+- **GitHub Actions**: CI/CD pipeline automation
 
-## Prerequisites
+### Monitoring & Observability
+- **Google Cloud Operations (formerly Stackdriver)**: Monitoring and logging
+- **Prometheus**: Metrics collection
+- **Grafana**: Visualization and dashboards
+- **Jaeger**: Distributed tracing
 
-- Node.js (v18 or higher)
-- PostgreSQL (v14 or higher)
-- Docker and Docker Compose
-- AWS CLI (for deployment)
-- Terraform (for infrastructure)
-
-## Project Structure
+## Infrastructure Diagram
 
 ```
-healthcare-appointment-system/
-├── frontend/                 # React frontend application
-├── services/                 # Backend microservices
-│   ├── appointment-service/  # Appointment management
-│   ├── auth-service/        # Authentication service
-│   └── notification-service/ # Notification service
-├── infrastructure/          # Infrastructure as Code
-│   ├── terraform/           # Terraform configurations
-│   └── kubernetes/          # Kubernetes manifests
-├── ci-cd/                   # CI/CD pipeline configurations
-├── monitoring/              # Monitoring and logging setup
-└── docs/                    # Project documentation
+                                 +----------------+
+                                 |   Cloud Load   |
+                                 |   Balancer     |
+                                 +--------+-------+
+                                          |
+                                 +--------v-------+
+                                 |   Kubernetes   |
+                                 |   Cluster      |
+                                 +----------------+
+                                 |                |
+           +------------+        |  +---------+  |        +-----------+
+           |            |        |  |Frontend |  |        |           |
+           |  Cloud SQL +<-------+--+         |  +-------->  Cloud    |
+           | (PostgreSQL)|       |  +---------+  |        |  Storage  |
+           |            |        |                |        |           |
+           +------------+        |  +---------+  |        +-----------+
+                                 |  |Backend  |  |
+                                 |  |Services |  |        +-----------+
+           +------------+        |  +---------+  |        |           |
+           |            |        |                |        |  Cloud    |
+           |   Redis    +<-------+--+---------+  +-------->  Pub/Sub  |
+           |   Cache    |        |  |API Gateway|  |        |           |
+           |            |        |  +---------+  |        +-----------+
+           +------------+        |                |
+                                 +----------------+
 ```
+
+## Deployment Architecture
+
+- **Development**: Local Docker environment with docker-compose
+- **Testing**: GCP Kubernetes cluster with dedicated namespace
+- **Staging**: GCP Kubernetes cluster with staging environment
+- **Production**: GCP Kubernetes cluster with high-availability configuration
+
+### CI/CD Pipeline
+
+1. Code push to Git repository
+2. GitHub Actions trigger CI pipeline
+3. Run unit and integration tests
+4. Build Docker images
+5. Push images to Google Container Registry
+6. Update Kubernetes deployments using Terraform
+7. Run smoke tests against new deployment
+8. Promote to next environment if tests pass
 
 ## Getting Started
+
+### Prerequisites
+
+- Node.js (v14+)
+- Docker and Docker Compose
+- Google Cloud SDK
+- Terraform CLI
+- kubectl
 
 ### Local Development
 
 1. Clone the repository:
-```bash
-git clone https://github.com/your-username/healthcare-appointment-system.git
-cd healthcare-appointment-system
-```
+   ```
+   git clone https://github.com/your-org/healthcare-portal.git
+   cd healthcare-portal
+   ```
 
 2. Install dependencies:
-```bash
-cd services/appointment-service
-npm install
-```
+   ```
+   npm install
+   ```
 
-3. Set up environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
+3. Start the development environment:
+   ```
+   docker-compose up -d
+   ```
 
-4. Start PostgreSQL database:
-```bash
-docker-compose up -d db
-```
+4. Access the application:
+   ```
+   http://localhost:3000
+   ```
 
-5. Run database migrations:
-```bash
-npm run migrate
-```
+### Cloud Deployment
 
-6. Start the development server:
-```bash
-npm run dev
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-npm test
-
-# Run tests with coverage
-npm run test:coverage
-
-# Run linting
-npm run lint
-```
-
-### Docker Deployment
-
-1. Build the Docker image:
-```bash
-docker build -t healthcare-appointment-service .
-```
-
-2. Run the container:
-```bash
-docker run -p 3000:3000 healthcare-appointment-service
-```
-
-### AWS Deployment
-
-1. Configure AWS credentials:
-```bash
-aws configure
-```
+1. Set up Google Cloud credentials:
+   ```
+   gcloud auth login
+   gcloud config set project your-project-id
+   ```
 
 2. Initialize Terraform:
-```bash
-cd infrastructure/terraform
-terraform init
-```
+   ```
+   cd terraform
+   terraform init
+   ```
 
-3. Deploy infrastructure:
-```bash
-terraform plan
-terraform apply
-```
+3. Apply Terraform configuration:
+   ```
+   terraform plan
+   terraform apply
+   ```
 
-## API Documentation
+4. Configure kubectl:
+   ```
+   gcloud container clusters get-credentials healthcare-cluster --zone us-central1-a
+   ```
 
-### Authentication Endpoints
+5. Deploy application:
+   ```
+   kubectl apply -f kubernetes/
+   ```
 
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - User login
-- `GET /api/auth/me` - Get current user
+## Monitoring and Observability
 
-### Appointment Endpoints
-
-- `GET /api/appointments` - List appointments
-- `POST /api/appointments` - Create appointment
-- `GET /api/appointments/:id` - Get appointment details
-- `PUT /api/appointments/:id` - Update appointment
-- `DELETE /api/appointments/:id` - Cancel appointment
-
-### Patient Endpoints
-
-- `GET /api/patients` - List patients
-- `POST /api/patients` - Create patient
-- `GET /api/patients/:id` - Get patient details
-- `PUT /api/patients/:id` - Update patient
-- `DELETE /api/patients/:id` - Delete patient
-
-### Doctor Endpoints
-
-- `GET /api/doctors` - List doctors
-- `POST /api/doctors` - Create doctor
-- `GET /api/doctors/:id` - Get doctor details
-- `PUT /api/doctors/:id` - Update doctor
-- `DELETE /api/doctors/:id` - Delete doctor
-
-## Security
-
-- JWT-based authentication
-- Role-based access control
-- Input validation
-- SQL injection prevention
-- XSS protection
-- CORS configuration
-- Rate limiting
-- Data encryption
-
-## Monitoring
-
-- Application logs with Winston
-- Error tracking
-- Performance monitoring
-- Health checks
-- Metrics collection
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- Access Google Cloud Operations dashboard for logs and metrics
+- Monitor application performance with Prometheus and Grafana
+- Track service interactions with Jaeger tracing
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Support
+## Contact
 
-For support, email support@healthcare-app.com or create an issue in the repository. 
+For questions or support, please contact:
+- Email: support@healthcare-portal.com
+- Website: https://healthcare-portal.com 
