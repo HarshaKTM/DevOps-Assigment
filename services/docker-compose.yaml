@@ -1,221 +1,148 @@
 version: '3.8'
 
 services:
-  # Database services
-  postgres:
-    image: postgres:13-alpine
-    container_name: healthcare-postgres
+  # Authentication Service
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    ports:
+      - "8090:8080"
     environment:
-      POSTGRES_USER: healthcare_user
-      POSTGRES_PASSWORD: healthcare_password
-      POSTGRES_MULTIPLE_DATABASES: appointment_service,doctor_service,patient_service,medical_records
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
+      - NODE_ENV=development
+      - PORT=8080
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/healthcare
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-secret-key
+      - JWT_EXPIRES_IN=24h
+    depends_on:
+      - db
+      - redis
     networks:
       - healthcare-network
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "healthcare_user"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:6-alpine
-    container_name: healthcare-redis
-    ports:
-      - "6379:6379"
     volumes:
-      - redis_data:/data
-    networks:
-      - healthcare-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - ./auth-service:/app
+      - /app/node_modules
 
-  # Backend services
+  # Patient Service
   patient-service:
     build:
       context: ./patient-service
-      dockerfile: Dockerfile.dev
-    container_name: patient-service
+      dockerfile: Dockerfile
+    ports:
+      - "8091:4001"
+    environment:
+      - NODE_ENV=development
+      - PORT=4001
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/healthcare
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-secret-key
+    depends_on:
+      - db
+      - redis
+      - auth-service
+    networks:
+      - healthcare-network
     volumes:
       - ./patient-service:/app
       - /app/node_modules
-    ports:
-      - "4001:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      - NODE_ENV=development
-      - PORT=8080
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=healthcare_user
-      - DB_PASSWORD=healthcare_password
-      - DB_NAME=patient_service
-      - DB_SSL=false
-      - JWT_SECRET=your_jwt_secret_key
-      - LOG_LEVEL=debug
-    networks:
-      - healthcare-network
 
+  # Doctor Service
   doctor-service:
     build:
       context: ./doctor-service
-      dockerfile: Dockerfile.dev
-    container_name: doctor-service
+      dockerfile: Dockerfile
+    ports:
+      - "8092:4002"
+    environment:
+      - NODE_ENV=development
+      - PORT=4002
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/healthcare
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-secret-key
+    depends_on:
+      - db
+      - redis
+      - auth-service
+    networks:
+      - healthcare-network
     volumes:
       - ./doctor-service:/app
       - /app/node_modules
-    ports:
-      - "4002:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    environment:
-      - NODE_ENV=development
-      - PORT=8080
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=healthcare_user
-      - DB_PASSWORD=healthcare_password
-      - DB_NAME=doctor_service
-      - DB_SSL=false
-      - JWT_SECRET=your_jwt_secret_key
-      - LOG_LEVEL=debug
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-    networks:
-      - healthcare-network
 
+  # Appointment Service
   appointment-service:
     build:
       context: ./appointment-service
-      dockerfile: Dockerfile.dev
-    container_name: appointment-service
+      dockerfile: Dockerfile
+    ports:
+      - "8093:4003"
+    environment:
+      - NODE_ENV=development
+      - PORT=4003
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/healthcare
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-secret-key
+      - PATIENT_SERVICE_URL=http://patient-service:4001
+      - DOCTOR_SERVICE_URL=http://doctor-service:4002
+    depends_on:
+      - db
+      - redis
+      - auth-service
+      - patient-service
+      - doctor-service
+    networks:
+      - healthcare-network
     volumes:
       - ./appointment-service:/app
       - /app/node_modules
-    ports:
-      - "4003:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      doctor-service:
-        condition: service_started
-      patient-service:
-        condition: service_started
-    environment:
-      - NODE_ENV=development
-      - PORT=8080
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=healthcare_user
-      - DB_PASSWORD=healthcare_password
-      - DB_NAME=appointment_service
-      - DB_SSL=false
-      - JWT_SECRET=your_jwt_secret_key
-      - LOG_LEVEL=debug
-      - PATIENT_SERVICE_URL=http://patient-service:8080
-      - DOCTOR_SERVICE_URL=http://doctor-service:8080
-      - NOTIFICATION_SERVICE_URL=http://notification-service:8080
-      - PUBSUB_EMULATOR_HOST=pubsub-emulator:8085
-      - PUBSUB_PROJECT_ID=healthcare-dev
-      - PUBSUB_TOPIC_APPOINTMENT_CREATED=appointment-created-dev
-      - PUBSUB_TOPIC_APPOINTMENT_UPDATED=appointment-updated-dev
-      - PUBSUB_TOPIC_APPOINTMENT_CANCELED=appointment-canceled-dev
-    networks:
-      - healthcare-network
 
-  notification-service:
-    build:
-      context: ./notification-service
-      dockerfile: Dockerfile.dev
-    container_name: notification-service
-    volumes:
-      - ./notification-service:/app
-      - /app/node_modules
-    ports:
-      - "4004:8080"
-    depends_on:
-      pubsub-emulator:
-        condition: service_started
-    environment:
-      - NODE_ENV=development
-      - PORT=8080
-      - LOG_LEVEL=debug
-      - JWT_SECRET=your_jwt_secret_key
-      - PUBSUB_EMULATOR_HOST=pubsub-emulator:8085
-      - PUBSUB_PROJECT_ID=healthcare-dev
-      - PUBSUB_SUBSCRIPTION_APPOINTMENT_CREATED=notification-appointment-created-dev
-      - PUBSUB_SUBSCRIPTION_APPOINTMENT_UPDATED=notification-appointment-updated-dev
-      - PUBSUB_SUBSCRIPTION_APPOINTMENT_CANCELED=notification-appointment-canceled-dev
-      - PUBSUB_TOPIC_NOTIFICATION_DLQ=notification-dlq-dev
-      - EMAIL_SERVICE=smtp
-      - EMAIL_HOST=mailhog
-      - EMAIL_PORT=1025
-      - EMAIL_USER=
-      - EMAIL_PASSWORD=
-      - EMAIL_FROM=no-reply@healthcare-system.example.com
-      - SMS_SERVICE=console
-    networks:
-      - healthcare-network
-
+  # Medical Records Service
   medical-records-service:
     build:
       context: ./medical-records-service
-      dockerfile: Dockerfile.dev
-    container_name: medical-records-service
+      dockerfile: Dockerfile
+    ports:
+      - "8095:4005"
+    environment:
+      - NODE_ENV=development
+      - PORT=4005
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/healthcare
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-secret-key
+      - PATIENT_SERVICE_URL=http://patient-service:4001
+    depends_on:
+      - db
+      - redis
+      - auth-service
+      - patient-service
+    networks:
+      - healthcare-network
     volumes:
       - ./medical-records-service:/app
       - /app/node_modules
-    ports:
-      - "4005:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
+
+  # PostgreSQL Database
+  db:
+    image: postgres:14-alpine
     environment:
-      - NODE_ENV=development
-      - PORT=8080
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=healthcare_user
-      - DB_PASSWORD=healthcare_password
-      - DB_NAME=medical_records
-      - DB_SSL=false
-      - JWT_SECRET=your_jwt_secret_key
-      - LOG_LEVEL=debug
-      - PATIENT_SERVICE_URL=http://patient-service:8080
-      - DOCTOR_SERVICE_URL=http://doctor-service:8080
-      - STORAGE_LOCAL=true
-      - STORAGE_PATH=/tmp/medical-records
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=healthcare
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
     networks:
       - healthcare-network
 
-  # Development tools
-  pubsub-emulator:
-    image: gcr.io/google.com/cloudsdktool/cloud-sdk:latest
-    container_name: pubsub-emulator
-    command: gcloud beta emulators pubsub start --host-port=0.0.0.0:8085 --project=healthcare-dev
+  # Redis Cache
+  redis:
+    image: redis:alpine
     ports:
-      - "8085:8085"
-    networks:
-      - healthcare-network
-
-  mailhog:
-    image: mailhog/mailhog
-    container_name: mailhog
-    ports:
-      - "8025:8025" # Web UI
-      - "1025:1025" # SMTP
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
     networks:
       - healthcare-network
 

@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: medical-records-service
+  name: auth-service
   namespace: healthcare-system
   labels:
-    app: medical-records-service
+    app: auth-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: medical-records-service
+      app: auth-service
   template:
     metadata:
       labels:
-        app: medical-records-service
+        app: auth-service
     spec:
       containers:
-      - name: medical-records-service
+      - name: auth-service
         image: gcr.io/eastern-period-459411-i8/
         imagePullPolicy: Always
         ports:
@@ -28,38 +28,38 @@ spec:
         - name: PORT
           value: "8080"
         - name: DB_NAME
-          value: "medical_records_service"
+          value: "auth_service"
         - name: DB_USER
           valueFrom:
             secretKeyRef:
-              name: medical-records-service-db-credentials
+              name: auth-service-db-credentials
               key: username
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: medical-records-service-db-credentials
+              name: auth-service-db-credentials
               key: password
         - name: DB_HOST
           valueFrom:
             secretKeyRef:
-              name: medical-records-service-db-credentials
+              name: auth-service-db-credentials
               key: host
         - name: DB_PORT
           valueFrom:
             secretKeyRef:
-              name: medical-records-service-db-credentials
+              name: auth-service-db-credentials
               key: port
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: medical-records-service
+  name: auth-service
   namespace: healthcare-system
   labels:
-    app: medical-records-service
+    app: auth-service
 spec:
   selector:
-    app: medical-records-service
+    app: auth-service
   ports:
   - port: 8080
     targetPort: 8080

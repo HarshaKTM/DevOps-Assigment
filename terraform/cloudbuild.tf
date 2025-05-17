@@ -115,7 +115,11 @@ resource "google_secret_manager_secret" "github_webhook" {
   secret_id = "github-webhook"
   
   replication {
-    automatic = true
+    user_managed {
+      replicas {
+        location = var.region
+      }
+    }
   }
   
   depends_on = [
