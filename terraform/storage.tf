@@ -83,6 +83,4 @@ resource "google_artifact_registry_repository" "healthcare_repo" {
   location      = var.region
   repository_id = "healthcare-repo-${var.environment}"
   format        = "DOCKER"
-  
-  encryption_key = google_kms_crypto_key.storage_encryption_key.id
 } 

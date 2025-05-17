@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: appointment-service-environment
+  namespace: healthcare-system
+data:
+  NODE_ENV: "development"
+  PORT: "8080"
+  LOG_LEVEL: "info"
+  PATIENT_SERVICE_URL: "http://patient-service:8080"
+  DOCTOR_SERVICE_URL: "http://doctor-service:8080"
+  NOTIFICATION_SERVICE_URL: "http://notification-service:8080" 

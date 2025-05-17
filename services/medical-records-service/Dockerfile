@@ -16,10 +16,10 @@ COPY . .
 
 # Environment variables
 ENV NODE_ENV=development
-ENV PORT=8080
+ENV PORT=4005
 
 # Expose the port
-EXPOSE 8080
+EXPOSE 4005
 
 # Start the application with ts-node
 CMD ["npx", "nodemon", "--exec", "ts-node", "src/index.ts"] 

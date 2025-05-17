@@ -40,13 +40,15 @@ export const authenticate = async (
   }
 };
 
-export const authorize = (...roles: string[]) => {
+export const authorize = (roles: string | string[]) => {
+  const roleArray = Array.isArray(roles) ? roles : [roles];
+  
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return next(new AppError('Not authenticated', 401));
     }
 
-    if (!roles.includes(req.user.role)) {
+    if (!roleArray.includes(req.user.role)) {
       return next(new AppError('Not authorized', 403));
     }
 

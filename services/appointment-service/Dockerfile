@@ -1,5 +1,4 @@
-# Build stage
-FROM node:18-alpine as build
+FROM node:18-alpine
 
 WORKDIR /app
 
@@ -9,32 +8,18 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci
 
+# Install ts-node and nodemon globally
+RUN npm install -g ts-node nodemon
+
 # Copy source code
 COPY . .
 
-# Build TypeScript
-RUN npm run build
+# Environment variables
+ENV NODE_ENV=development
+ENV PORT=4003
 
-# Production stage
-FROM node:18-alpine
+# Expose the port
+EXPOSE 4003
 
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install production dependencies only
-RUN npm ci --only=production
-
-# Copy built files from build stage
-COPY --from=build /app/dist ./dist
-
-# Set environment variables
-ENV NODE_ENV=production
-ENV PORT=3000
-
-# Expose port
-EXPOSE 3000
-
-# Start the application
-CMD ["node", "dist/index.js"] 
+# Start the application with ts-node
+CMD ["npx", "nodemon", "--exec", "ts-node", "src/index.ts","--port:8080"] 

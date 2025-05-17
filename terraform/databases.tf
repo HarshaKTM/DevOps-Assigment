@@ -30,8 +30,6 @@ resource "google_sql_database_instance" "main" {
       record_application_tags = true
       record_client_address   = true
     }
-    
-    encryption_key_name = google_kms_crypto_key.db_encryption_key.id
   }
   
   deletion_protection = var.environment == "prod" ? true : false
@@ -112,7 +110,11 @@ resource "google_secret_manager_secret" "patient_service_db_password" {
   secret_id = "patient-service-db-password-${var.environment}"
   
   replication {
-    automatic = true
+    user_managed {
+      replicas {
+        location = var.region
+      }
+    }
   }
 }
 
@@ -125,7 +127,11 @@ resource "google_secret_manager_secret" "appointment_service_db_password" {
   secret_id = "appointment-service-db-password-${var.environment}"
   
   replication {
-    automatic = true
+    user_managed {
+      replicas {
+        location = var.region
+      }
+    }
   }
 }
 
@@ -138,7 +144,11 @@ resource "google_secret_manager_secret" "doctor_service_db_password" {
   secret_id = "doctor-service-db-password-${var.environment}"
   
   replication {
-    automatic = true
+    user_managed {
+      replicas {
+        location = var.region
+      }
+    }
   }
 }
 
@@ -151,7 +161,11 @@ resource "google_secret_manager_secret" "medical_records_db_password" {
   secret_id = "medical-records-db-password-${var.environment}"
   
   replication {
-    automatic = true
+    user_managed {
+      replicas {
+        location = var.region
+      }
+    }
   }
 }
 
