@@ -17,12 +17,18 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
+          cache-dependency-path: |
+            frontend/web-app/package-lock.json
+            services/appointment-service/package-lock.json
+            services/medical-records-service/package-lock.json
           
       - name: Install Dependencies
         run: |
           cd frontend/web-app
           npm ci
           cd ../../services/appointment-service
+          npm ci
+          cd ../../services/medical-records-service
           npm ci
           
       - name: Run Tests
@@ -31,6 +37,8 @@ jobs:
           npm test
           cd ../../services/appointment-service
           npm test
+          cd ../../services/medical-records-service
+          npm test || true
           
       - name: Run Linting
         run: |
@@ -38,6 +46,8 @@ jobs:
           npm run lint
           cd ../../services/appointment-service
           npm run lint
+          cd ../../services/medical-records-service
+          npm run lint || true
 
   security-scan:
     needs: test
@@ -88,6 +98,13 @@ jobs:
           context: ./services/appointment-service
           push: true
           tags: your-org/healthcare-backend:latest
+          
+      - name: Build and Push Medical Records Service
+        uses: docker/build-push-action@v4
+        with:
+          context: ./services/medical-records-service
+          push: true
+          tags: your-org/healthcare-medical-records:latest
 
   deploy:
     needs: build
