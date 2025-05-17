@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudsql-proxy-config
+  namespace: healthcare-system
+data:
+  sql-proxy-service.json: |
+    {
+      "instances": [
+        {
+          "connectionName": "eastern-period-459411-i8:asia-south1:eastern-period-459411-i8",
+          "port": 5432
+        }
+      ]
+    } 

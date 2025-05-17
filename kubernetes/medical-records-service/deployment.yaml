@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: medical-records-service
-        image: gcr.io/eastern-period-459411-i8/
+        image: gcr.io/eastern-period-459411-i8/medical-records-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8080

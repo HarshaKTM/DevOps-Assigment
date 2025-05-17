@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: healthcare-api-ingress
+  namespace: healthcare-system
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /auth
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-service
+            port:
+              number: 8080
+      - path: /medical-records
+        pathType: Prefix
+        backend:
+          service:
+            name: medical-records-service
+            port:
+              number: 8080 
